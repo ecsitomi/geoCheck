@@ -1,5 +1,6 @@
 .env
 ai_readiness_full_report.json
+ai_readiness_report.csv
 report.html
 pycache
 __pycache__/

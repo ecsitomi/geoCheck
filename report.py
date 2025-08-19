@@ -239,10 +239,10 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         # Score szín meghatározása
         score_class = "score-excellent" if score >= 70 else "score-good" if score >= 50 else "score-poor"
         
-        # Meta adatok kinyerése
+        # Meta adatok kinyerése - JAVÍTVA
         meta_data = site.get("meta_and_headings", {})
-        title = meta_data.get("title", "N/A")
-        description = meta_data.get("description", "N/A")
+        title = meta_data.get("title") or "N/A"
+        description = meta_data.get("description") or "N/A"
         headings = meta_data.get("headings", {})
         
         # Schema adatok
@@ -255,6 +255,10 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         # PageSpeed adatok
         psi = site.get("pagespeed_insights", {})
         
+        # Title és description hosszak biztonságos számítása
+        title_len = len(title) if title and title != "N/A" else 0
+        desc_len = len(description) if description and description != "N/A" else 0
+        
         html_content += f"""
         <div class="site-card">
             <div class="site-header">
@@ -266,8 +270,8 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 <div class="metric-item">
                     <div class="metric-title">📄 Meta adatok</div>
                     <div class="metric-value">
-                        Title: {"✅" if meta_data.get("title_optimal") else "⚠️"} {len(title) if title != "N/A" else 0} karakter<br>
-                        Description: {"✅" if meta_data.get("description_optimal") else "⚠️"} {len(description) if description != "N/A" else 0} karakter
+                        Title: {"✅" if meta_data.get("title_optimal") else "⚠️"} {title_len} karakter<br>
+                        Description: {"✅" if meta_data.get("description_optimal") else "⚠️"} {desc_len} karakter
                     </div>
                 </div>
                 
@@ -570,11 +574,17 @@ def generate_csv_export(json_file: str = "ai_readiness_full_report.json",
             schema = site.get("schema", {})
             psi = site.get("pagespeed_insights", {})
             
+            # Biztonságos hossz számítás
+            title = meta.get('title')
+            description = meta.get('description')
+            title_len = len(title) if title else 0
+            desc_len = len(description) if description else 0
+            
             row = {
                 'URL': site.get('url', 'N/A'),
                 'AI Score': site.get('ai_readiness_score', 0),
-                'Title Length': len(meta.get('title', '')) if meta.get('title') else 0,
-                'Description Length': len(meta.get('description', '')) if meta.get('description') else 0,
+                'Title Length': title_len,
+                'Description Length': desc_len,
                 'Has Robots.txt': site.get('robots_txt', {}).get('can_fetch', False),
                 'Has Sitemap': site.get('sitemap', {}).get('exists', False),
                 'Mobile Friendly': site.get('mobile_friendly', {}).get('has_viewport', False),
