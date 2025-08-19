@@ -195,11 +195,37 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             padding: 20px;
         }}
         
+        .alert-box {{
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }}
+        
+        .alert-critical {{
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }}
+        
+        .alert-info {{
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }}
+        
+        .alert-warning {{
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }}
+        
         @media (max-width: 768px) {{
             h1 {{ font-size: 1.8rem; }}
             .site-url {{ font-size: 1.2rem; }}
             .charts-row {{ grid-template-columns: 1fr; }}
             .metrics-grid {{ grid-template-columns: 1fr; }}
+            .alert-box {{ padding: 10px; font-size: 0.9rem; }}
         }}
     </style>
 </head>
@@ -255,9 +281,13 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         # PageSpeed adatok
         psi = site.get("pagespeed_insights", {})
         
-        # Title és description hosszak biztonságos számítása
+        # Title és description hosszak biztonságos számítása - JAVÍTVA
         title_len = len(title) if title and title != "N/A" else 0
         desc_len = len(description) if description and description != "N/A" else 0
+        
+        # Javított meta megjelenítés
+        title_status = "✅" if meta_data.get("title_optimal") else ("⚠️" if title_len > 0 else "❌")
+        desc_status = "✅" if meta_data.get("description_optimal") else ("⚠️" if desc_len > 0 else "❌ Hiányzik")
         
         html_content += f"""
         <div class="site-card">
@@ -270,8 +300,8 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 <div class="metric-item">
                     <div class="metric-title">📄 Meta adatok</div>
                     <div class="metric-value">
-                        Title: {"✅" if meta_data.get("title_optimal") else "⚠️"} {title_len} karakter<br>
-                        Description: {"✅" if meta_data.get("description_optimal") else "⚠️"} {desc_len} karakter
+                        Title: {title_status} {title_len} karakter<br>
+                        Description: {desc_status} {desc_len} karakter
                     </div>
                 </div>
                 
@@ -310,6 +340,72 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             </div>
 """
         
+        # JAVÍTVA: Kritikus problémák figyelmeztetése
+        critical_issues = []
+        if meta_data.get('h1_count', 0) > 1:
+            critical_issues.append(f"🚨 Túl sok H1 elem ({meta_data.get('h1_count')} db)")
+        if meta_data.get('h1_count', 0) == 0:
+            critical_issues.append("🚨 Hiányzik a H1 elem")
+        if desc_len == 0:
+            critical_issues.append("🚨 Meta description hiányzik")
+        if title_len == 0:
+            critical_issues.append("🚨 Title tag hiányzik")
+        if any(count > 50 for count in headings.values()):
+            excessive_heading = max(headings.items(), key=lambda x: x[1])
+            critical_issues.append(f"🚨 Túl sok {excessive_heading[0].upper()} elem ({excessive_heading[1]} db)")
+        
+        if critical_issues:
+            html_content += """
+            <div class="alert-box alert-critical">
+                <div style="font-weight: 600; margin-bottom: 10px;">⚠️ Kritikus problémák</div>
+"""
+            for issue in critical_issues[:3]:  # Max 3 kritikus probléma
+                html_content += f"""
+                <div style="margin: 5px 0;">• {issue}</div>
+"""
+            html_content += "</div>"
+        
+        # JAVÍTVA: Fejlesztési javaslatok alacsony score esetén
+        if score < 70:
+            improvements = []
+            if not meta_data.get('title_optimal'):
+                if title_len == 0:
+                    improvements.append("📝 Adj hozzá title tag-et")
+                elif title_len < 30:
+                    improvements.append("📝 Hosszabbítsd meg a title-t (30-60 karakter)")
+                elif title_len > 60:
+                    improvements.append("📝 Rövidítsd le a title-t (30-60 karakter)")
+            
+            if not meta_data.get('description_optimal'):
+                if desc_len == 0:
+                    improvements.append("📝 Adj hozzá meta description-t")
+                elif desc_len < 120:
+                    improvements.append("📝 Hosszabbítsd meg a description-t (120-160 karakter)")
+                elif desc_len > 160:
+                    improvements.append("📝 Rövidítsd le a description-t (120-160 karakter)")
+            
+            if sum(schema_data.get('count', {}).values()) == 0:
+                improvements.append("🏗️ Adj hozzá Schema.org markup-ot")
+            
+            if not mobile.get('responsive_images'):
+                improvements.append("📱 Használj responsive képeket")
+            
+            if meta_data.get('h1_count', 0) != 1:
+                improvements.append("🏗️ Pontosan 1 H1 elem használata javasolt")
+            
+            if improvements:
+                html_content += """
+            <div class="alert-box alert-info">
+                <div style="font-weight: 600; margin-bottom: 10px;">💡 Fejlesztési javaslatok</div>
+"""
+                for improvement in improvements[:4]:  # Max 4 javaslat
+                    html_content += f"""
+                <div style="margin: 5px 0;">• {improvement}</div>
+"""
+                html_content += "</div>"
+        
+        html_content += "</div>"  # site-card bezárása
+        
         # PageSpeed Insights táblázat
         if psi:
             html_content += """
@@ -338,8 +434,9 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 mobile_score = mobile_psi.get(metric, 'N/A') if mobile_psi else 'N/A'
                 desktop_score = desktop_psi.get(metric, 'N/A') if desktop_psi else 'N/A'
                 
-                mobile_color = get_score_color(mobile_score) if isinstance(mobile_score, (int, float)) else ''
-                desktop_color = get_score_color(desktop_score) if isinstance(desktop_score, (int, float)) else ''
+                # JAVÍTVA: Csak számértékekhez adjunk színt
+                mobile_color = get_score_color(mobile_score) if isinstance(mobile_score, (int, float)) else '#666'
+                desktop_color = get_score_color(desktop_score) if isinstance(desktop_score, (int, float)) else '#666'
                 
                 html_content += f"""
                     <tr>
@@ -354,17 +451,23 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             </table>
 """
         
-        # Schema.org részletek
-        if schema_data.get("details"):
+        # Schema.org részletek - JAVÍTVA: szűrjük a None/Unknown típusokat
+        valid_schemas = [
+            detail for detail in schema_data.get("details", [])
+            if detail.get('type') and detail.get('type') not in ['None', 'Unknown', '']
+        ]
+        
+        if valid_schemas:
             html_content += """
             <details style="margin-top: 20px;">
                 <summary style="cursor: pointer; font-weight: 600; color: #667eea;">📋 Schema.org részletek</summary>
                 <div style="margin-top: 10px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
 """
-            for detail in schema_data.get("details", [])[:5]:  # Max 5 schema
+            for detail in valid_schemas[:5]:  # Max 5 schema
+                schema_type = detail.get('type', 'Unknown')
                 html_content += f"""
                     <div style="margin: 5px 0;">
-                        • {detail.get('type', 'Unknown')} 
+                        • <strong>{schema_type}</strong>
                         {' 🖼️' if detail.get('has_image') else ''}
                         {' ⭐' if detail.get('has_rating') else ''}
                     </div>
@@ -372,6 +475,13 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             html_content += """
                 </div>
             </details>
+"""
+        elif schema_data.get("count") and sum(schema_data.get("count", {}).values()) > 0:
+            html_content += """
+            <div class="alert-box alert-warning">
+                <div style="font-weight: 600;">📋 Schema.org részletek</div>
+                <div style="margin-top: 5px;">Schema markup található, de típus információ nem elérhető</div>
+            </div>
 """
         
         html_content += "</div>"
@@ -398,10 +508,14 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         schema_data = site.get("schema", {})
         schema_count = schema_data.get("count", {})
         
-        # Headings chart
+        # Headings chart - JAVÍTVA: figyelmeztetés túl sok heading esetén
         if headings:
             heading_labels = list(headings.keys())
             heading_values = list(headings.values())
+            
+            # Ellenőrizzük, hogy van-e túl sok heading
+            excessive_headings = any(count > 50 for count in heading_values)
+            chart_warning = "⚠️ Túl sok heading elem!" if excessive_headings else ""
             
             html_content += f"""
     // Heading Chart - {uid}
@@ -430,7 +544,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             plugins: {{
                 title: {{
                     display: true,
-                    text: 'Heading Struktúra'
+                    text: 'Heading Struktúra {chart_warning}'
                 }},
                 legend: {{
                     display: false
@@ -448,10 +562,12 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
     }});
 """
         
-        # Schema chart
-        if schema_count and any(schema_count.values()):
-            schema_labels = list(schema_count.keys())
-            schema_values = list(schema_count.values())
+        # Schema chart - JAVÍTVA: csak akkor mutassunk, ha van értelmes adat
+        if schema_count and any(v > 0 for v in schema_count.values()):
+            # Csak a nem-nulla értékeket mutatjuk
+            filtered_schema = {k: v for k, v in schema_count.items() if v > 0}
+            schema_labels = list(filtered_schema.keys())
+            schema_values = list(filtered_schema.values())
             
             html_content += f"""
     // Schema Chart - {uid}
@@ -491,9 +607,9 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
     }});
 """
         else:
-            # Ha nincs schema, üres chart
+            # Ha nincs schema, üres chart helyett üzenet
             html_content += f"""
-    // Schema Chart - {uid} (nincs adat)
+    // Schema Chart - {uid} (nincs schema adat)
     new Chart(document.getElementById('schemaChart_{uid}'), {{
         type: 'doughnut',
         data: {{
@@ -510,7 +626,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             plugins: {{
                 title: {{
                     display: true,
-                    text: 'Schema.org Típusok'
+                    text: 'Schema.org Típusok - Nincs adat'
                 }},
                 legend: {{
                     display: false
