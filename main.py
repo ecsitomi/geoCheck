@@ -44,7 +44,7 @@ class GEOAnalyzer:
             can_fetch = rp.can_fetch("*", url)
             return can_fetch, robots_url
         except Exception as e:
-            print(f"Robots.txt ellenőrzési hiba ({url}): {e}")
+            print(f"    ⚠️ Robots.txt ellenőrzési hiba: {e}")
             return True, robots_url  # Ha nincs robots.txt, engedélyezzük
     
     def check_sitemap(self, url: str) -> Tuple[bool, str, Optional[int]]:
@@ -79,7 +79,7 @@ class GEOAnalyzer:
             r.raise_for_status()
             return r.text
         except requests.RequestException as e:
-            print(f"HTML lekérési hiba ({url}): {e}")
+            print(f"    ❌ HTML lekérési hiba: {e}")
             return None
     
     def check_schema(self, html: str) -> Dict[str, any]:
@@ -127,7 +127,7 @@ class GEOAnalyzer:
                     })
                     
             except json.JSONDecodeError as e:
-                print(f"Schema JSON parse hiba: {e}")
+                print(f"    ⚠️ Schema JSON parse hiba: {e}")
                 continue
         
         return schema_info
@@ -216,57 +216,83 @@ class GEOAnalyzer:
         
         return result
     
-    def get_pagespeed_insights(self, url: str, strategy: str = 'mobile') -> Optional[Dict]:
-        """PageSpeed Insights API hívás részletes hibakezeléssel"""
+    def get_pagespeed_insights_with_retry(self, url: str, strategy: str = 'mobile', max_retries: int = 3) -> Optional[Dict]:
+        """PageSpeed Insights API hívás retry logikával és jobb hibakezeléssel"""
         if not self.api_key:
-            print("PageSpeed Insights: API kulcs hiányzik")
             return None
         
-        try:
-            # URL encode
-            encoded_url = quote(url, safe='')
-            endpoint = f'https://www.googleapis.com/pagespeedonline/v5/runPagespeed'
-            
-            params = {
-                'url': url,
-                'strategy': strategy,
-                'key': self.api_key,
-                'category': ['performance', 'accessibility', 'best-practices', 'seo']
-            }
-            
-            response = requests.get(endpoint, params=params, timeout=30)
-            
-            if response.status_code == 429:
-                print(f"PageSpeed API: Rate limit túllépve")
+        for attempt in range(max_retries):
+            try:
+                endpoint = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed'
+                
+                params = {
+                    'url': url,
+                    'strategy': strategy,
+                    'key': self.api_key,
+                    'category': ['performance', 'seo']  # Csak a legfontosabbak a gyorsaság érdekében
+                }
+                
+                # Progresszívan növekvő timeout
+                timeout = 45 + (attempt * 15)  # 45, 60, 75 másodperc
+                
+                print(f"    PageSpeed {strategy} próbálkozás {attempt + 1}/{max_retries} (timeout: {timeout}s)")
+                
+                response = requests.get(endpoint, params=params, timeout=timeout)
+                
+                if response.status_code == 429:
+                    wait_time = 60 + (attempt * 30)  # 60, 90, 120 másodperc
+                    print(f"    Rate limit - várakozás {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+                elif response.status_code != 200:
+                    print(f"    PageSpeed API hiba ({strategy}): {response.status_code}")
+                    if attempt < max_retries - 1:
+                        time.sleep(10)
+                        continue
+                    return None
+                
+                data = response.json()
+                categories = data.get('lighthouseResult', {}).get('categories', {})
+                
+                psi = {}
+                for cat in ['performance', 'seo']:
+                    score = categories.get(cat, {}).get('score')
+                    psi[cat] = round(score * 100) if score is not None else None
+                
+                # Core Web Vitals (ha van)
+                audits = data.get('lighthouseResult', {}).get('audits', {})
+                if audits:
+                    psi['core_web_vitals'] = {
+                        'lcp': audits.get('largest-contentful-paint', {}).get('displayValue'),
+                        'fid': audits.get('max-potential-fid', {}).get('displayValue'),
+                        'cls': audits.get('cumulative-layout-shift', {}).get('displayValue')
+                    }
+                
+                print(f"    ✓ PageSpeed sikeres ({strategy}): Perf {psi.get('performance', 'N/A')}, SEO {psi.get('seo', 'N/A')}")
+                return psi
+                
+            except requests.exceptions.Timeout:
+                print(f"    ⏰ Timeout ({strategy}) - {attempt + 1}. próbálkozás")
+                if attempt < max_retries - 1:
+                    wait_time = 30 + (attempt * 15)
+                    print(f"    Várakozás {wait_time}s...")
+                    time.sleep(wait_time)
+                continue
+            except requests.RequestException as e:
+                print(f"    ❌ PageSpeed kapcsolati hiba ({strategy}): {str(e)[:100]}...")
+                if attempt < max_retries - 1:
+                    time.sleep(20)
+                    continue
                 return None
-            elif response.status_code != 200:
-                print(f"PageSpeed API hiba ({strategy}): {response.status_code}")
+            except json.JSONDecodeError as e:
+                print(f"    ❌ PageSpeed JSON parse hiba ({strategy}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(10)
+                    continue
                 return None
-            
-            data = response.json()
-            categories = data.get('lighthouseResult', {}).get('categories', {})
-            
-            psi = {}
-            for cat in ['performance', 'accessibility', 'best-practices', 'seo']:
-                score = categories.get(cat, {}).get('score')
-                psi[cat] = round(score * 100) if score is not None else None
-            
-            # Core Web Vitals
-            audits = data.get('lighthouseResult', {}).get('audits', {})
-            psi['core_web_vitals'] = {
-                'lcp': audits.get('largest-contentful-paint', {}).get('displayValue'),
-                'fid': audits.get('max-potential-fid', {}).get('displayValue'),
-                'cls': audits.get('cumulative-layout-shift', {}).get('displayValue')
-            }
-            
-            return psi
-            
-        except requests.RequestException as e:
-            print(f"PageSpeed API hívási hiba: {e}")
-            return None
-        except json.JSONDecodeError as e:
-            print(f"PageSpeed API JSON parse hiba: {e}")
-            return None
+        
+        print(f"    ❌ PageSpeed sikertelen {max_retries} próbálkozás után ({strategy})")
+        return None
     
     def calculate_ai_readiness_score(self, result: Dict) -> int:
         """AI-readiness score számítás részletesebb metrikákkal"""
@@ -329,17 +355,21 @@ class GEOAnalyzer:
         return min(100, score)  # Max 100 pont
     
     def analyze_url(self, url: str) -> Dict:
-        """Egy URL teljes elemzése"""
+        """Egy URL teljes elemzése optimalizált PageSpeed hívással"""
         if not self.validate_url(url):
             return {"url": url, "error": "Érvénytelen URL"}
         
         result = {"url": url, "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")}
         
+        print(f"\n📊 Elemzés: {url}")
+        
         # Robots.txt
+        print("  🤖 Robots.txt...")
         can_fetch, robots_url = self.check_robots_txt(url)
         result["robots_txt"] = {"url": robots_url, "can_fetch": can_fetch}
         
         # Sitemap
+        print("  🗺️ Sitemap...")
         sitemap_exists, sitemap_url, sitemap_size = self.check_sitemap(url)
         result["sitemap"] = {
             "exists": sitemap_exists, 
@@ -348,6 +378,7 @@ class GEOAnalyzer:
         }
         
         # HTML lekérés
+        print("  📄 HTML letöltés...")
         html = self.get_html(url)
         if not html:
             result["error"] = "HTML nem elérhető"
@@ -357,12 +388,15 @@ class GEOAnalyzer:
         result["html_size_kb"] = len(html) / 1024
         
         # Meta és headings
+        print("  📝 Meta adatok...")
         result["meta_and_headings"] = self.check_meta_and_headings(html)
         
         # Schema
+        print("  🏗️ Schema.org...")
         result["schema"] = self.check_schema(html)
         
         # Mobile-friendly
+        print("  📱 Mobile teszt...")
         result["mobile_friendly"] = self.check_mobile_friendly(html)
         
         # Index hint
@@ -372,24 +406,35 @@ class GEOAnalyzer:
             "bing_search_url": f"https://www.bing.com/search?q=site:{parsed.netloc}"
         }
         
-        # PageSpeed Insights (ha van API kulcs)
+        # PageSpeed Insights (csak ha van API kulcs)
+        pagespeed_results = {}
         if self.api_key:
-            print(f"PageSpeed Insights lekérdezése: {url}")
-            mobile_psi = self.get_pagespeed_insights(url, 'mobile')
-            desktop_psi = self.get_pagespeed_insights(url, 'desktop')
+            print("  ⚡ PageSpeed Insights...")
             
-            if mobile_psi or desktop_psi:
-                result["pagespeed_insights"] = {
-                    "mobile": mobile_psi,
-                    "desktop": desktop_psi
-                }
+            # Először mobile (fontosabb)
+            mobile_psi = self.get_pagespeed_insights_with_retry(url, 'mobile')
+            if mobile_psi:
+                pagespeed_results["mobile"] = mobile_psi
+                
+                # Desktop csak akkor, ha mobile sikeres volt
+                print("  💻 PageSpeed Desktop...")
+                desktop_psi = self.get_pagespeed_insights_with_retry(url, 'desktop', max_retries=2)  # Kevesebb retry desktop-ra
+                if desktop_psi:
+                    pagespeed_results["desktop"] = desktop_psi
+            else:
+                print("  ⚠️ PageSpeed átugrása - túl sok hiba")
+        
+        if pagespeed_results:
+            result["pagespeed_insights"] = pagespeed_results
         
         # AI-readiness score
         result["ai_readiness_score"] = self.calculate_ai_readiness_score(result)
         
+        print(f"  ✅ Kész! AI Score: {result['ai_readiness_score']}/100")
+        
         return result
     
-    def analyze_urls_parallel(self, url_list: List[str], max_workers: int = 3) -> List[Dict]:
+    def analyze_urls_parallel(self, url_list: List[str], max_workers: int = 2) -> List[Dict]:  # Csökkentett worker szám
         """Több URL párhuzamos elemzése"""
         results = []
         
@@ -401,7 +446,7 @@ class GEOAnalyzer:
                 try:
                     result = future.result()
                     results.append(result)
-                    print(f"✓ Kész: {url}")
+                    print(f"✓ Befejezve: {url}")
                 except Exception as e:
                     print(f"✗ Hiba {url} elemzésekor: {e}")
                     results.append({"url": url, "error": str(e)})
@@ -411,16 +456,21 @@ class GEOAnalyzer:
 
 def analyze_urls(url_list: List[str], api_key: Optional[str] = None, 
                 output_file: str = "ai_readiness_full_report.json",
-                parallel: bool = True) -> None:
-    """Fő elemző függvény"""
+                parallel: bool = True, skip_pagespeed: bool = False) -> None:
+    """Fő elemző függvény fejlesztett opciókkal"""
     
     analyzer = GEOAnalyzer(api_key)
     
+    # Ha nincs API kulcs, ne próbálkozzunk PageSpeed-del
+    if not analyzer.api_key:
+        skip_pagespeed = True
+    
     print(f"{'='*50}")
-    print(f"GEO Analyzer - {len(url_list)} URL elemzése")
-    print(f"API kulcs: {'Van' if analyzer.api_key else 'Nincs'}")
-    print(f"Párhuzamos feldolgozás: {'Igen' if parallel else 'Nem'}")
-    print(f"{'='*50}\n")
+    print(f"🚀 GEO Analyzer - {len(url_list)} URL elemzése")
+    print(f"API kulcs: {'✅ Van' if analyzer.api_key else '❌ Nincs'}")
+    print(f"PageSpeed: {'❌ Átugrás' if skip_pagespeed else '✅ Engedélyezve'}")
+    print(f"Párhuzamos: {'✅ Igen' if parallel and len(url_list) > 1 else '❌ Nem'}")
+    print(f"{'='*50}")
     
     start_time = time.time()
     
@@ -429,10 +479,8 @@ def analyze_urls(url_list: List[str], api_key: Optional[str] = None,
     else:
         results = []
         for url in url_list:
-            print(f"Elemzés: {url}")
             result = analyzer.analyze_url(url)
             results.append(result)
-            print(f"✓ Kész: {url}\n")
     
     # Eredmények mentése
     with open(output_file, "w", encoding="utf-8") as f:
@@ -441,27 +489,29 @@ def analyze_urls(url_list: List[str], api_key: Optional[str] = None,
     elapsed_time = time.time() - start_time
     
     print(f"\n{'='*50}")
-    print(f"✓ Elemzés kész!")
-    print(f"Időtartam: {elapsed_time:.2f} másodperc")
-    print(f"Jelentés mentve: {output_file}")
+    print(f"✅ Elemzés befejezve!")
+    print(f"⏱️ Időtartam: {elapsed_time:.1f} másodperc")
+    print(f"💾 Jelentés: {output_file}")
     print(f"{'='*50}")
     
     # Összefoglaló statisztikák
-    avg_score = sum(r.get('ai_readiness_score', 0) for r in results) / len(results)
-    print(f"\nÁtlagos AI-readiness score: {avg_score:.1f}/100")
-    
-    # Top 3 és Bottom 3
-    sorted_results = sorted(results, key=lambda x: x.get('ai_readiness_score', 0), reverse=True)
-    
-    print("\nLegjobb 3 oldal:")
-    for r in sorted_results[:3]:
-        print(f"  • {r['url']}: {r.get('ai_readiness_score', 0)}/100")
-    
-    if len(sorted_results) > 3:
-        print("\nFejlesztendő oldalak:")
-        for r in sorted_results[-3:]:
-            if r.get('ai_readiness_score', 0) < 50:
-                print(f"  • {r['url']}: {r.get('ai_readiness_score', 0)}/100")
+    valid_results = [r for r in results if 'ai_readiness_score' in r]
+    if valid_results:
+        avg_score = sum(r['ai_readiness_score'] for r in valid_results) / len(valid_results)
+        print(f"\n📊 Átlagos AI-readiness score: {avg_score:.1f}/100")
+        
+        # Top 3 és Bottom 3
+        sorted_results = sorted(valid_results, key=lambda x: x['ai_readiness_score'], reverse=True)
+        
+        print("\n🏆 Legjobb 3 oldal:")
+        for r in sorted_results[:3]:
+            print(f"  • {r['url']}: {r['ai_readiness_score']}/100")
+        
+        if len(sorted_results) > 3:
+            print("\n🔧 Fejlesztendő oldalak:")
+            for r in sorted_results[-3:]:
+                if r['ai_readiness_score'] < 50:
+                    print(f"  • {r['url']}: {r['ai_readiness_score']}/100")
 
 
 # Példa futtatás
@@ -480,8 +530,12 @@ if __name__ == "__main__":
         print("Állítsd be a .env fájlban: GOOGLE_API_KEY=your_api_key")
         print("PageSpeed Insights nélkül fut az elemzés.\n")
     
-    analyze_urls(urls_to_test, api_key, parallel=True)
+    # Gyorsabb futtatás: skip_pagespeed=True ha nincs szükség PageSpeed-re
+    analyze_urls(urls_to_test, api_key, parallel=True, skip_pagespeed=False)
     
     # HTML report generálás
-    from report import generate_html_report
-    generate_html_report()
+    try:
+        from report import generate_html_report
+        generate_html_report()
+    except ImportError:
+        print("⚠️ report.py nem található - HTML jelentés kihagyva")
