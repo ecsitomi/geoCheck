@@ -1,3 +1,7 @@
 .env
 ai_readiness_full_report.json
 report.html
+pycache
+__pycache__/
+*.pyc
+.pyc
