@@ -45,6 +45,33 @@ max_workers = st.sidebar.slider(
     help="Több szál = gyorsabb, de több terhelés"
 )
 
+st.sidebar.subheader("🚀 Fejlett funkciók")
+
+generate_advanced_reports = st.sidebar.checkbox(
+    "Fejlett jelentések generálása",
+    value=True,
+    help="Executive, technikai és action plan jelentések"
+)
+
+report_type = st.sidebar.selectbox(
+    "Jelentés típusa:",
+    ["executive", "technical", "action_plan", "competitor"],
+    help="Milyen típusú részletes jelentést szeretnél?"
+)
+
+enable_ai_fixes = st.sidebar.checkbox(
+    "Automatikus javítási javaslatok",
+    value=True,
+    help="AI-alapú optimalizálási javaslatok generálása"
+)
+
+platform_focus = st.sidebar.multiselect(
+    "AI platform fókusz:",
+    ["ChatGPT", "Claude", "Gemini", "Bing Chat"],
+    default=["ChatGPT", "Claude"],
+    help="Melyik AI platformokra optimalizálj?"
+)
+
 # Főoldal
 col1, col2 = st.columns([2, 1])
 

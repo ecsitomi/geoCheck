@@ -10,6 +10,12 @@ from dotenv import load_dotenv
 import os
 import re
 
+from ai_metrics import AISpecificMetrics
+from content_analyzer import ContentQualityAnalyzer
+from platform_optimizer import MultiPlatformGEOAnalyzer
+from auto_fixes import AutoFixGenerator
+from advanced_reporting import AdvancedReportGenerator
+
 # .env fájl betöltése
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
