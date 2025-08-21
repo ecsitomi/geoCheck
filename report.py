@@ -1454,6 +1454,9 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         # Site card lezárása
         html_content += '</div>'
 
+        #Body lezárása
+        html_content += '</div>'
+
     # Footer
     current_year = datetime.now().year
     html_content += f"""
