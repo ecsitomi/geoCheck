@@ -15,6 +15,9 @@ from content_analyzer import ContentQualityAnalyzer
 from platform_optimizer import MultiPlatformGEOAnalyzer
 from auto_fixes import AutoFixGenerator
 from advanced_reporting import AdvancedReportGenerator
+from cache_manager import CacheManager
+from ai_evaluator import AIContentEvaluator
+from schema_validator import SchemaValidator
 
 # .env fájl betöltése
 load_dotenv()
