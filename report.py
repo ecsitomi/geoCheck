@@ -1146,7 +1146,9 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         else:
             html_content += '<div class="metric-item"><div class="metric-title">❌ Nincs adat</div><div class="metric-value">Tartalom minőségi adatok nem elérhetők</div></div>'
             
+        
         html_content += f"""
+                </div>
             </div>
             
             <!-- Platformok tab -->
@@ -1216,9 +1218,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         else:
             html_content += '<p>Platform elemzési adatok nem elérhetők</p>'
         
-        html_content += '</div>'
-            
-        # Platform javaslatok megjelenítése
+        # Platform javaslatok megjelenítése (BELÜL a Platformok tab-ban)
         if platform_suggestions:
             html_content += '<div style="margin-top: 20px;"><h4>💡 Platform-specifikus javaslatok</h4>'
             
@@ -1262,9 +1262,11 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             
             html_content += '</div>'
             
-        html_content += f"""
-            </div>
+        # Platformok tab lezárása
+        html_content += '</div>'
             
+        # Javítások tab kezdése
+        html_content += f"""
             <!-- Javítások tab -->
             <div id="{uid}-fixes" class="tab-content">
                 <h3>🔧 Automatikus javítási javaslatok</h3>"""
@@ -1276,8 +1278,38 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             if critical_fixes:
                 html_content += '<div style="margin-bottom: 20px;"><h4 style="color: #dc3545;">🚨 Kritikus javítások</h4>'
                 for fix in critical_fixes:
-                    html_content += f'<div class="fix-item" style="border-left-color: #dc3545; background: #f8d7da;">'
-                    html_content += f'<div class="fix-title">{html.escape(str(fix))}</div></div>'
+                    if isinstance(fix, dict):
+                        issue = fix.get('issue', 'N/A')
+                        severity = fix.get('severity', 'N/A')
+                        impact = fix.get('impact', 'N/A')
+                        fix_code = fix.get('fix_code', '')
+                        explanation = fix.get('explanation', '')
+                        estimated_time = fix.get('estimated_time', '')
+                        implementation = fix.get('implementation', '')
+                        
+                        html_content += f"""
+                        <div class="fix-item" style="border-left-color: #dc3545; background: #f8d7da;">
+                            <div class="fix-title">🚨 {html.escape(issue)}</div>
+                            <div style="margin: 10px 0; color: #666;">
+                                <strong>Súlyosság:</strong> {html.escape(severity)}<br>
+                                <strong>Hatás:</strong> {html.escape(impact)}<br>
+                                <strong>Magyarázat:</strong> {html.escape(explanation)}<br>
+                                <strong>Becsült idő:</strong> {html.escape(estimated_time)}<br>
+                                <strong>Megvalósítás:</strong> {html.escape(implementation)}
+                            </div>"""
+                        
+                        if fix_code:
+                            html_content += f"""
+                            <div style="background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin: 10px 0;">
+                                <strong>Javítás kódja:</strong>
+                                <pre style="background: #f8f9fa; padding: 8px; border-radius: 3px; margin: 5px 0; overflow-x: auto;"><code>{html.escape(fix_code)}</code></pre>
+                            </div>"""
+                        
+                        html_content += '</div>'
+                    else:
+                        # Fallback régi formátumra
+                        html_content += f'<div class="fix-item" style="border-left-color: #dc3545; background: #f8d7da;">'
+                        html_content += f'<div class="fix-title">{html.escape(str(fix))}</div></div>'
                 html_content += '</div>'
             
             # SEO javítások
@@ -1415,10 +1447,12 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 html_content += '</div>'
         else:
             html_content += '<p>Automatikus javítási javaslatok nem elérhetők</p>'
-            html_content += '</div>'  # Close fixes tab div
             
-        html_content += """
-        </div>"""
+        # Javítások tab lezárása
+        html_content += '</div>'
+            
+        # Site card lezárása
+        html_content += '</div>'
 
     # Footer
     current_year = datetime.now().year
@@ -1567,7 +1601,6 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
 """
 
     html_content += """
-        </div>  <!-- Close site-card -->
     </div>  <!-- Close container -->
     
     </script>
