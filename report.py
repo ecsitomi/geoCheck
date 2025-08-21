@@ -1,4 +1,5 @@
 import json
+import csv
 import re
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -1521,10 +1522,10 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
     new Chart(document.getElementById('headingChart_{uid}'), {{
         type: 'bar',
         data: {{
-            labels: {heading_labels},
+            labels: {json.dumps(heading_labels)},
             datasets: [{{
                 label: 'Heading elemek száma',
-                data: {heading_values},
+                data: {json.dumps(heading_values)},
                 backgroundColor: [
                     '{primary_color}80',
                     '{secondary_color}80',
@@ -1604,9 +1605,8 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
 """
 
     html_content += """
-    </div>  <!-- Close container -->
-    
     </script>
+    </div>  <!-- Close container -->
 </body>
 </html>
 """
@@ -1629,7 +1629,6 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
 def generate_csv_export(json_file: str = "ai_readiness_full_report.json",
                         output_file: str = "ai_readiness_report.csv") -> None:
     """Enhanced CSV export generálása"""
-    import csv
     
     try:
         with open(json_file, "r", encoding="utf-8") as f:
