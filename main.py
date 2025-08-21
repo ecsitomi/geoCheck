@@ -360,7 +360,7 @@ class GEOAnalyzer:
         
         return min(100, score)  # Max 100 pont
     
-    def analyze_url(self, url: str) -> Dict:
+    def analyze_url(self, url: str, skip_pagespeed: bool = False) -> Dict:
         """Egy URL teljes elemzése optimalizált PageSpeed hívással"""
         if not self.validate_url(url):
             return {"url": url, "error": "Érvénytelen URL"}
@@ -434,7 +434,7 @@ class GEOAnalyzer:
         
         # PageSpeed Insights (csak ha van API kulcs)
         pagespeed_results = {}
-        if self.api_key:
+        if self.api_key and not skip_pagespeed:
             print("  ⚡ PageSpeed Insights...")
             
             # Először mobile (fontosabb)
@@ -465,12 +465,16 @@ class GEOAnalyzer:
         
         return result
     
-    def analyze_urls_parallel(self, url_list: List[str], max_workers: int = 2) -> List[Dict]:  # Csökkentett worker szám
+    def analyze_urls_parallel(self, url_list: List[str], max_workers: int = 2, 
+                         skip_pagespeed: bool = False) -> List[Dict]:
         """Több URL párhuzamos elemzése"""
         results = []
         
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_url = {executor.submit(self.analyze_url, url): url for url in url_list}
+            future_to_url = {
+            executor.submit(self.analyze_url, url, skip_pagespeed): url 
+            for url in url_list
+        }
             
             for future in as_completed(future_to_url):
                 url = future_to_url[future]
@@ -487,14 +491,12 @@ class GEOAnalyzer:
 
 def analyze_urls(url_list: List[str], api_key: Optional[str] = None, 
                 output_file: str = "ai_readiness_full_report.json",
-                parallel: bool = True, skip_pagespeed: bool = False) -> None:
+                parallel: bool = True, skip_pagespeed: bool = False,
+                max_workers: int = 2) -> None:
     """Fő elemző függvény fejlesztett opciókkal"""
     
     analyzer = GEOAnalyzer(api_key)
-    
-    # Ha nincs API kulcs, ne próbálkozzunk PageSpeed-del
-    if not analyzer.api_key:
-        skip_pagespeed = True
+    analyzer.skip_pagespeed = skip_pagespeed
     
     print(f"{'='*50}")
     print(f"🚀 GEO Analyzer - {len(url_list)} URL elemzése")
@@ -506,7 +508,7 @@ def analyze_urls(url_list: List[str], api_key: Optional[str] = None,
     start_time = time.time()
     
     if parallel and len(url_list) > 1:
-        results = analyzer.analyze_urls_parallel(url_list)
+        results = analyzer.analyze_urls_parallel(url_list, max_workers=max_workers)
     else:
         results = []
         for url in url_list:

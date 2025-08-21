@@ -3,6 +3,7 @@ import json
 import os
 from main import analyze_urls, GEOAnalyzer
 from report import generate_html_report, generate_csv_export
+from advanced_reporting import AdvancedReportGenerator  
 import time
 
 st.set_page_config(
@@ -164,7 +165,9 @@ if st.button("▶️ Elemzés kezdése", type="primary", disabled=not bool(url_l
                 url_list=url_list,
                 api_key=api_key if not skip_pagespeed else None,
                 output_file=json_filename,
-                parallel=parallel_processing
+                parallel=parallel_processing,
+                skip_pagespeed=skip_pagespeed,
+                max_workers=max_workers
             )
             
             progress_bar.progress(70)
