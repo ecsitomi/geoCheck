@@ -2,6 +2,33 @@ import json
 import re
 from datetime import datetime
 from typing import Dict, List, Optional
+import html
+
+# Helper függvények
+def level_from_score(score: float) -> str:
+    """AI Readiness szint meghatározása pontszám alapján"""
+    if score is None: 
+        return "Ismeretlen"
+    if score >= 85: return "Kiváló"
+    if score >= 60: return "Jó"
+    if score >= 40: return "Közepes"
+    return "Fejlesztendő"
+
+def badge_class(score: float) -> str:
+    """CSS osztály meghatározása pontszám alapján"""
+    if score is None: 
+        return "score-average"
+    if score >= 85: return "score-excellent"
+    if score >= 60: return "score-good"
+    if score >= 40: return "score-average"
+    return "score-poor"
+
+def fmt(x, digits=1):
+    """Biztonságos formázás"""
+    try:
+        return f"{float(x):.{digits}f}"
+    except Exception:
+        return "—"
 
 def generate_html_report(json_file: str = "ai_readiness_full_report.json", 
                         output_file: str = "report.html") -> None:
@@ -126,7 +153,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         }}
         
         .score-excellent {{ background: linear-gradient(135deg, #00c851 0%, #00a846 100%); }}
-        .score-good {{ background: linear-gradient(135deg, #ffbb33 0%, #ff8800 100%); }}
+        .score-average {{ background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); }}
         .score-poor {{ background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); }}
         
         .metrics-grid {{
@@ -390,8 +417,8 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     <div class="label">Elemzett oldalak</div>
                 </div>
                 <div class="summary-card">
-                    <div class="value">{avg_score:.1f}</div>
-                    <div class="label">Átlagos AI Score</div>
+                    <div class="value">{fmt(avg_score, 1)}</div>
+                    <div class="label">Átlagos AI Readiness</div>
                 </div>
                 <div class="summary-card">
                     <div class="value">{sum(1 for s in data if s.get('ai_readiness_score', 0) >= 70)}</div>
@@ -412,7 +439,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         uid = f"site_{idx}_{re.sub(r'[^a-zA-Z0-9]', '_', url)}"
         
         # Score szín meghatározása
-        score_class = "score-excellent" if score >= 70 else "score-good" if score >= 50 else "score-poor"
+        score_class = badge_class(score)
         
         # Adatok kinyerése
         meta_data = site.get("meta_and_headings", {})
@@ -430,16 +457,16 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         <div class="site-card">
             <div class="site-header">
                 <div class="site-url">{url}</div>
-                <div class="score-badge {score_class}">{score}</div>
+                <div class="score-badge {score_class}">{fmt(score, 0)}</div>
             </div>
             
             <!-- Tab navigáció -->
             <div class="tabs">
-                <button class="tab active" onclick="showTab('{uid}', 'overview')">📊 Áttekintés</button>
-                <button class="tab" onclick="showTab('{uid}', 'ai-metrics')">🤖 AI Metrikák</button>
-                <button class="tab" onclick="showTab('{uid}', 'content')">📝 Tartalom</button>
-                <button class="tab" onclick="showTab('{uid}', 'platforms')">🎯 Platformok</button>
-                <button class="tab" onclick="showTab('{uid}', 'fixes')">🔧 Javítások</button>
+                <button class="tab active" onclick="showTab(event, '{uid}', 'overview')">📊 Áttekintés</button>
+                <button class="tab" onclick="showTab(event, '{uid}', 'ai-metrics')">🤖 AI Metrikák</button>
+                <button class="tab" onclick="showTab(event, '{uid}', 'content')">📝 Tartalom</button>
+                <button class="tab" onclick="showTab(event, '{uid}', 'platforms')">🎯 Platformok</button>
+                <button class="tab" onclick="showTab(event, '{uid}', 'fixes')">🔧 Javítások</button>
             </div>
             
             <!-- Áttekintés tab -->
@@ -470,7 +497,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                         <div class="metric-value">
                             Robots.txt: {"✅ Engedélyezett" if site.get('robots_txt', {}).get('can_fetch') else "❌ Tiltott"}<br>
                             Sitemap: {"✅ Van" if site.get('sitemap', {}).get('exists') else "❌ Nincs"}<br>
-                            HTML méret: {site.get('html_size_kb', 0):.1f} KB
+                            HTML méret: {fmt(site.get('html_size_kb', 0), 1)} KB
                         </div>
                     </div>
                     
@@ -508,16 +535,26 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         
         # AI metrikák megjelenítése
         if ai_summary and not ai_summary.get('error'):
+            weighted_avg = ai_summary.get("weighted_average")
+            
             html_content += f"""
                 <h3>AI Readiness Összefoglaló</h3>
                 <div class="ai-metrics-grid">
                     <div class="ai-metric">
                         <div class="ai-metric-label">Összesített</div>
-                        <div class="ai-metric-value">{ai_summary.get('weighted_average', 0):.1f}</div>
+                        <div class="ai-metric-value">{fmt(score, 0)}</div>
                     </div>
                     <div class="ai-metric">
                         <div class="ai-metric-label">Szint</div>
-                        <div class="ai-metric-value">{ai_summary.get('level', 'N/A')}</div>
+                        <div class="ai-metric-value">{level_from_score(score)}</div>
+                    </div>
+                </div>
+                
+                <h4>AI metrika átlag (weighted)</h4>
+                <div class="ai-metrics-grid">
+                    <div class="ai-metric">
+                        <div class="ai-metric-label">Értékelt átlag</div>
+                        <div class="ai-metric-value">{fmt(weighted_avg, 1)}</div>
                     </div>
                 </div>
                 
@@ -544,7 +581,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 <ul>
                     <li>FAQ Schema: {"✅" if qa_format.get('has_faq_schema') else "❌"}</li>
                     <li>Kérdések száma: {qa_format.get('question_patterns_count', 0)}</li>
-                    <li>Q&A Score: {qa_format.get('qa_score', 0)}/100</li>
+                    <li>Q&A Score: {fmt(qa_format.get('qa_score', 0), 1)}/100</li>
                 </ul>
 """
                 
@@ -558,7 +595,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     <li>Rendezett listák: {lists.get('ordered', 0)}</li>
                     <li>Nem rendezett listák: {lists.get('unordered', 0)}</li>
                     <li>Táblázatok: {content_structure.get('tables', {}).get('count', 0)}</li>
-                    <li>Struktúra score: {content_structure.get('structure_score', 0)}/100</li>
+                    <li>Struktúra score: {fmt(content_structure.get('structure_score', 0), 1)}/100</li>
                 </ul>
 """
         else:
@@ -584,7 +621,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     <div class="metric-value">
                         Szószám: {readability.get('word_count', 0)}<br>
                         Mondatok: {readability.get('sentence_count', 0)}<br>
-                        Flesch score: {readability.get('flesch_score', 0):.1f}<br>
+                        Flesch score: {fmt(readability.get('flesch_score', 0), 1)}<br>
                         Szint: {readability.get('readability_level', 'N/A')}
                     </div>
                 </div>
@@ -594,7 +631,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     <div class="metric-value">
                         Összes szó: {keyword_analysis.get('total_words', 0)}<br>
                         Egyedi szavak: {keyword_analysis.get('unique_words', 0)}<br>
-                        Szókincs gazdagság: {keyword_analysis.get('vocabulary_richness', 0):.3f}
+                        Szókincs gazdagság: {fmt(keyword_analysis.get('vocabulary_richness', 0), 3)}
                     </div>
                 </div>
 """
@@ -617,7 +654,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                         Példák: {content_depth.get('examples_count', 0)}<br>
                         Statisztikák: {content_depth.get('statistics_count', 0)}<br>
                         Külső hivatkozások: {content_depth.get('external_references', 0)}<br>
-                        Mélység score: {content_depth.get('depth_score', 0)}/100
+                        Mélység score: {fmt(content_depth.get('depth_score', 0), 1)}/100
                     </div>
                 </div>
 """
@@ -638,9 +675,9 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 html_content += f"""
                 <h3>Platform kompatibilitás</h3>
                 <div class="alert-box alert-info">
-                    <strong>Átlagos kompatibilitás:</strong> {summary.get('average_compatibility', 0):.1f}/100<br>
+                    <strong>Átlagos kompatibilitás:</strong> {fmt(summary.get('average_compatibility', 0), 1)}/100<br>
                     <strong>Legjobb platform:</strong> {summary.get('best_platform', {}).get('name', 'N/A')} 
-                    ({summary.get('best_platform', {}).get('score', 0)}/100)<br>
+                    ({fmt(summary.get('best_platform', {}).get('score', 0), 1)}/100)<br>
                     <strong>Összesített szint:</strong> {summary.get('overall_level', 'N/A')}
                 </div>
                 
@@ -658,7 +695,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                             html_content += f"""
                     <div class="platform-card">
                         <div class="platform-name">{platform.replace('_', ' ').title()}</div>
-                        <div class="platform-score">{p_score}</div>
+                        <div class="platform-score">{fmt(p_score, 1)}</div>
                         <div class="platform-level">{p_level}</div>
                     </div>
 """
@@ -730,32 +767,39 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
 """
                 html_content += "</div></details>"
         else:
-            html_content += "<p>Automatikus javítások nem elérhetők</p>"
+            # Hibaüzenet megjelenítése ha van
+            error_msg = auto_fixes.get('error', '') if auto_fixes else ''
+            if error_msg:
+                html_content += f"""
+                <div class="alert-box alert-critical">
+                    <strong>Auto-fix hiba:</strong> {html.escape(error_msg)}
+                </div>
+"""
+            else:
+                html_content += "<p>Automatikus javítások nem elérhetők</p>"
             
         html_content += "</div></div>"  # tab-content és site-card bezárása
 
     # Footer
-    html_content += """
+    current_year = datetime.now().year
+    html_content += f"""
         <div class="footer">
-            <p>© 2024 GEO Analyzer | AI Readiness Report</p>
+            <p>© {current_year} GEO Analyzer | AI Readiness Report</p>
             <p style="margin-top: 10px; opacity: 0.8;">Teljes elemzés minden AI platform számára</p>
         </div>
     </div>
     
     <script>
-        function showTab(siteId, tabName) {
-            // Hide all tabs for this site
-            const tabs = document.querySelectorAll(`#${siteId}-overview, #${siteId}-ai-metrics, #${siteId}-content, #${siteId}-platforms, #${siteId}-fixes`);
+        function showTab(ev, siteId, tabName) {{
+            const tabs = document.querySelectorAll(`#${{siteId}}-overview, #${{siteId}}-ai-metrics, #${{siteId}}-content, #${{siteId}}-platforms, #${{siteId}}-fixes`);
             tabs.forEach(tab => tab.classList.remove('active'));
             
-            // Show selected tab
-            document.getElementById(`${siteId}-${tabName}`).classList.add('active');
+            document.getElementById(`${{siteId}}-${{tabName}}`).classList.add('active');
             
-            // Update tab buttons
-            const tabButtons = event.target.parentElement.querySelectorAll('.tab');
+            const tabButtons = ev.target.parentElement.querySelectorAll('.tab');
             tabButtons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-        }
+            ev.target.classList.add('active');
+        }}
 """
 
     # JavaScript chart generálás
@@ -819,7 +863,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
     }});
 """
         
-        # Schema chart
+        # Schema chart - tényleges megrajzolás
         if schema_count and any(v > 0 for v in schema_count.values()):
             filtered_schema = {k: v for k, v in schema_count.items() if v > 0}
             schema_labels = list(filtered_schema.keys())
@@ -827,13 +871,14 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             
             html_content += f"""
     // Schema Chart - {uid}
+    const schemaCounts_{uid.replace('-', '_')} = {json.dumps(filtered_schema)};
     new Chart(document.getElementById('schemaChart_{uid}'), {{
-        type: 'doughnut',
+        type: 'bar',
         data: {{
-            labels: {schema_labels},
+            labels: Object.keys(schemaCounts_{uid.replace('-', '_')}),
             datasets: [{{
                 label: 'Schema típusok',
-                data: {schema_values},
+                data: Object.values(schemaCounts_{uid.replace('-', '_')}),
                 backgroundColor: [
                     'rgba(255, 99, 132, 0.8)',
                     'rgba(54, 162, 235, 0.8)',
@@ -853,10 +898,18 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             plugins: {{
                 title: {{
                     display: true,
-                    text: 'Schema.org Típusok'
+                    text: 'Schema típusok'
                 }},
                 legend: {{
-                    position: 'bottom'
+                    display: false
+                }}
+            }},
+            scales: {{
+                y: {{
+                    beginAtZero: true,
+                    ticks: {{
+                        stepSize: 1
+                    }}
                 }}
             }}
         }}
@@ -925,7 +978,7 @@ def generate_csv_export(json_file: str = "ai_readiness_full_report.json",
             
             row = {
                 'URL': site.get('url', 'N/A'),
-                'AI Score': site.get('ai_readiness_score', 0),
+                'AI Score': fmt(site.get('ai_readiness_score', 0), 1),
                 'Title Length': title_len,
                 'Description Length': desc_len,
                 'Has Robots.txt': site.get('robots_txt', {}).get('can_fetch', False),
@@ -933,8 +986,8 @@ def generate_csv_export(json_file: str = "ai_readiness_full_report.json",
                 'Mobile Friendly': site.get('mobile_friendly', {}).get('has_viewport', False),
                 'H1 Count': meta.get('h1_count', 0),
                 'Schema Count': sum(schema.get('count', {}).values()),
-                'PSI Mobile': psi.get('mobile', {}).get('performance', 'N/A') if psi else 'N/A',
-                'PSI Desktop': psi.get('desktop', {}).get('performance', 'N/A') if psi else 'N/A'
+                'PSI Mobile': fmt(psi.get('mobile', {}).get('performance', 0), 1) if psi else '—',
+                'PSI Desktop': fmt(psi.get('desktop', {}).get('performance', 0), 1) if psi else '—'
             }
             writer.writerow(row)
     
