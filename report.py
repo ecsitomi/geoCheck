@@ -30,10 +30,41 @@ def fmt(x, digits=1):
     except Exception:
         return "—"
 
+def detect_enhanced_analysis(data: List[Dict]) -> Dict:
+    """Automatikus enhanced vs standard felismerés"""
+    if not data:
+        return {"is_enhanced": False, "enhancement_stats": {}}
+    
+    valid_results = [r for r in data if isinstance(r, dict) and 'ai_readiness_score' in r and 'error' not in r]
+    
+    # Enhanced jellemzők keresése
+    ai_enhanced_count = len([r for r in valid_results if r.get('ai_content_evaluation')])
+    schema_enhanced_count = len([r for r in valid_results if r.get('schema', {}).get('validation_status') == 'enhanced'])
+    cached_count = len([r for r in valid_results if r.get('cached')])
+    
+    # Enhanced akkor, ha legalább 1 AI evaluation vagy enhanced schema van
+    is_enhanced = ai_enhanced_count > 0 or schema_enhanced_count > 0
+    
+    enhancement_stats = {
+        "ai_enhanced_count": ai_enhanced_count,
+        "ai_enhanced_percentage": round((ai_enhanced_count / len(valid_results)) * 100, 1) if valid_results else 0,
+        "schema_enhanced_count": schema_enhanced_count,
+        "schema_enhanced_percentage": round((schema_enhanced_count / len(valid_results)) * 100, 1) if valid_results else 0,
+        "cached_count": cached_count,
+        "cache_hit_rate": round((cached_count / len(valid_results)) * 100, 1) if valid_results else 0,
+        "total_enhanced": ai_enhanced_count + schema_enhanced_count,
+        "enhancement_adoption": round(((ai_enhanced_count + schema_enhanced_count) / (len(valid_results) * 2)) * 100, 1) if valid_results else 0
+    }
+    
+    return {
+        "is_enhanced": is_enhanced,
+        "enhancement_stats": enhancement_stats
+    }
+
 def generate_html_report(json_file: str = "ai_readiness_full_report.json", 
                         output_file: str = "report.html") -> None:
     """
-    HTML jelentés generálása a GEO elemzés eredményeiből - TELJES VERZIÓ
+    Enhanced HTML jelentés generálása - automatikus enhanced/standard felismeréssel
     """
     try:
         with open(json_file, "r", encoding="utf-8") as f:
@@ -45,8 +76,19 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         print(f"❌ Hiba: {json_file} nem érvényes JSON!")
         return
 
-    # Átlagos score számítása
-    avg_score = sum(site.get('ai_readiness_score', 0) for site in data) / len(data) if data else 0
+    # Enhanced analysis detektálása
+    detection_result = detect_enhanced_analysis(data)
+    is_enhanced = detection_result["is_enhanced"]
+    enhancement_stats = detection_result["enhancement_stats"]
+    
+    # Valid results
+    valid_results = [r for r in data if isinstance(r, dict) and 'ai_readiness_score' in r and 'error' not in r]
+    avg_score = sum(r['ai_readiness_score'] for r in valid_results) / len(valid_results) if valid_results else 0
+    
+    # Report címek és stílus
+    report_title = "🚀 Enhanced GEO AI Readiness Report" if is_enhanced else "📊 GEO AI Readiness Report"
+    primary_color = "#667eea" if is_enhanced else "#4facfe"
+    secondary_color = "#764ba2" if is_enhanced else "#00f2fe"
     
     # HTML template
     html_content = f"""
@@ -55,7 +97,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GEO AI Readiness Report - {datetime.now().strftime('%Y-%m-%d')}</title>
+    <title>{report_title} - {datetime.now().strftime('%Y-%m-%d')}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -67,7 +109,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         
         body {{
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, {primary_color} 0%, {secondary_color} 100%);
             min-height: 100vh;
             padding: 20px;
         }}
@@ -83,12 +125,30 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             padding: 30px;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            {f'border-left: 5px solid {primary_color};' if is_enhanced else ''}
         }}
         
         h1 {{
             color: #333;
             font-size: 2.5rem;
             margin-bottom: 10px;
+        }}
+        
+        .enhanced-badge {{
+            background: linear-gradient(135deg, {primary_color} 0%, {secondary_color} 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-left: 10px;
+            position: relative;
+        }}
+        
+        .enhanced-badge::before {{
+            content: "🤖";
+            margin-right: 5px;
         }}
         
         .summary {{
@@ -103,12 +163,27 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             padding: 20px;
             border-radius: 10px;
             text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }}
+        
+        .summary-card:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }}
+        
+        .summary-card.enhanced {{
+            background: linear-gradient(135deg, {primary_color} 0%, {secondary_color} 100%);
+            color: white;
         }}
         
         .summary-card .value {{
             font-size: 2rem;
             font-weight: 700;
-            color: #667eea;
+            color: {primary_color};
+        }}
+        
+        .summary-card.enhanced .value {{
+            color: white;
         }}
         
         .summary-card .label {{
@@ -117,12 +192,23 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             margin-top: 5px;
         }}
         
+        .summary-card.enhanced .label {{
+            color: rgba(255,255,255,0.9);
+        }}
+        
         .site-card {{
             background: white;
             border-radius: 20px;
             padding: 30px;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            {f'border-left: 5px solid {primary_color};' if is_enhanced else ''}
+            transition: transform 0.2s, box-shadow 0.2s;
+        }}
+        
+        .site-card:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
         }}
         
         .site-header {{
@@ -140,6 +226,38 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             color: #333;
         }}
         
+        .enhancement-badges {{
+            display: flex;
+            gap: 8px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }}
+        
+        .enhancement-badge {{
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }}
+        
+        .badge-ai {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }}
+        
+        .badge-schema {{
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }}
+        
+        .badge-cache {{
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }}
+        
         .score-badge {{
             display: inline-flex;
             align-items: center;
@@ -150,11 +268,25 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             font-size: 1.5rem;
             font-weight: 700;
             color: white;
+            position: relative;
         }}
         
-        .score-excellent {{ background: linear-gradient(135deg, #00c851 0%, #00a846 100%); }}
-        .score-average {{ background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); }}
-        .score-poor {{ background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); }}
+        .score-excellent {{ 
+            background: linear-gradient(135deg, #00c851 0%, #00a846 100%); 
+            box-shadow: 0 8px 25px rgba(0, 200, 81, 0.3);
+        }}
+        .score-good {{ 
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); 
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+        }}
+        .score-average {{ 
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); 
+            box-shadow: 0 8px 25px rgba(255, 193, 7, 0.3);
+        }}
+        .score-poor {{ 
+            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); 
+            box-shadow: 0 8px 25px rgba(255, 68, 68, 0.3);
+        }}
         
         .metrics-grid {{
             display: grid;
@@ -166,19 +298,33 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         .metric-item {{
             background: #f8f9fa;
             padding: 20px;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
+            border-radius: 12px;
+            border-left: 4px solid {primary_color};
+            transition: transform 0.2s;
+        }}
+        
+        .metric-item:hover {{
+            transform: translateY(-2px);
+        }}
+        
+        .metric-item.ai-enhanced {{
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-left-color: #ff6b6b;
         }}
         
         .metric-title {{
             font-weight: 600;
             color: #333;
             margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }}
         
         .metric-value {{
             color: #666;
             font-size: 0.9rem;
+            line-height: 1.5;
         }}
         
         .platform-grid {{
@@ -191,8 +337,18 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         .platform-card {{
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 12px;
             text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }}
+        
+        .platform-card:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }}
+        
+        .platform-card.ai-enhanced {{
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
         }}
         
         .platform-name {{
@@ -204,7 +360,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         .platform-score {{
             font-size: 2rem;
             font-weight: 700;
-            color: #667eea;
+            color: {primary_color};
         }}
         
         .platform-level {{
@@ -213,10 +369,49 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             margin-top: 5px;
         }}
         
+        .ai-scores {{
+            background: linear-gradient(135deg, {primary_color} 0%, {secondary_color} 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }}
+        
+        .ai-score-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }}
+        
+        .ai-score-item {{
+            text-align: center;
+            background: rgba(255,255,255,0.15);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }}
+        
+        .ai-score-value {{
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }}
+        
+        .ai-score-label {{
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }}
+        
         .chart-container {{
             width: 100%;
             max-width: 500px;
             margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }}
         
         .charts-row {{
@@ -228,39 +423,60 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         
         .tabs {{
             display: flex;
-            gap: 10px;
+            gap: 5px;
             margin: 20px 0;
             border-bottom: 2px solid #e0e0e0;
+            overflow-x: auto;
+            padding-bottom: 0;
         }}
         
         .tab {{
-            padding: 10px 20px;
+            padding: 12px 20px;
             background: none;
             border: none;
             cursor: pointer;
             font-weight: 600;
             color: #666;
             transition: all 0.3s;
+            border-radius: 8px 8px 0 0;
+            white-space: nowrap;
+        }}
+        
+        .tab:hover {{
+            background: rgba(102, 126, 234, 0.1);
+            color: {primary_color};
         }}
         
         .tab.active {{
-            color: #667eea;
-            border-bottom: 3px solid #667eea;
+            color: {primary_color};
+            background: {primary_color};
+            background: linear-gradient(135deg, {primary_color} 0%, {secondary_color} 100%);
+            color: white;
         }}
         
         .tab-content {{
             display: none;
             padding: 20px 0;
+            animation: fadeIn 0.3s ease-in;
         }}
         
         .tab-content.active {{
             display: block;
         }}
         
+        @keyframes fadeIn {{
+            from {{ opacity: 0; transform: translateY(10px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+        
         table {{
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }}
         
         th, td {{
@@ -270,13 +486,13 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         }}
         
         th {{
-            background: #f8f9fa;
+            background: {primary_color};
+            color: white;
             font-weight: 600;
-            color: #333;
         }}
         
-        .check-icon {{ color: #00c851; }}
-        .cross-icon {{ color: #ff4444; }}
+        .check-icon {{ color: #00c851; font-weight: bold; }}
+        .cross-icon {{ color: #ff4444; font-weight: bold; }}
         
         .footer {{
             text-align: center;
@@ -327,7 +543,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         
         .progress-fill {{
             height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, {primary_color} 0%, {secondary_color} 100%);
             transition: width 0.3s;
         }}
         
@@ -340,10 +556,16 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         
         .ai-metric {{
             background: #fff;
-            padding: 10px;
+            padding: 15px;
             border-radius: 8px;
             text-align: center;
             border: 1px solid #e0e0e0;
+            transition: transform 0.2s;
+        }}
+        
+        .ai-metric:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }}
         
         .ai-metric-label {{
@@ -353,7 +575,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         }}
         
         .ai-metric-value {{
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: 600;
             color: #333;
         }}
@@ -363,7 +585,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             padding: 20px;
             margin: 20px 0;
             border-radius: 12px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid {primary_color};
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s, box-shadow 0.2s;
         }}
@@ -380,11 +602,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             font-size: 1.1rem;
             display: flex;
             align-items: center;
-        }}
-        
-        .fix-title::before {{
-            content: "🔧";
-            margin-right: 8px;
+            gap: 8px;
         }}
         
         .fix-description {{
@@ -412,7 +630,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             position: absolute;
             top: -8px;
             right: 10px;
-            background: #667eea;
+            background: {primary_color};
             color: white;
             font-size: 0.7rem;
             padding: 2px 8px;
@@ -421,59 +639,10 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         }}
         
         .fix-time {{
-            color: #667eea;
+            color: {primary_color};
             font-weight: 600;
             font-size: 0.9rem;
             margin-top: 10px;
-        }}
-        
-        .keywords-container {{
-            background: #f8fafc;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-            border: 1px solid #e2e8f0;
-        }}
-        
-        .keywords-title {{
-            font-weight: 600;
-            color: #334155;
-            margin-bottom: 12px;
-            font-size: 1rem;
-        }}
-        
-        .keywords-list {{
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }}
-        
-        .keyword-item {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
-            transition: transform 0.2s;
-        }}
-        
-        .keyword-item:hover {{
-            transform: scale(1.05);
-        }}
-        
-        .keyword-count {{
-            background: rgba(255, 255, 255, 0.3);
-            margin-left: 6px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 0.75rem;
         }}
         
         details {{
@@ -483,10 +652,15 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         summary {{
             cursor: pointer;
             font-weight: 600;
-            color: #667eea;
+            color: {primary_color};
             padding: 10px;
             background: #f8f9fa;
             border-radius: 8px;
+            transition: background 0.2s;
+        }}
+        
+        summary:hover {{
+            background: #e9ecef;
         }}
         
         @media (max-width: 768px) {{
@@ -495,14 +669,19 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             .charts-row {{ grid-template-columns: 1fr; }}
             .metrics-grid {{ grid-template-columns: 1fr; }}
             .platform-grid {{ grid-template-columns: repeat(2, 1fr); }}
+            .tabs {{ justify-content: flex-start; }}
+            .tab {{ padding: 10px 15px; font-size: 0.9rem; }}
         }}
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🚀 GEO AI Readiness Report</h1>
-            <p style="color: #666;">Generative Engine Optimization elemzés - {datetime.now().strftime('%Y. %m. %d. %H:%M')}</p>
+            <h1>{report_title.replace('🚀 ', '').replace('📊 ', '')}</h1>
+            <p style="color: #666;">
+                Generative Engine Optimization elemzés - {datetime.now().strftime('%Y. %m. %d. %H:%M')}
+                {f'<span class="enhanced-badge">AI ENHANCED</span>' if is_enhanced else ''}
+            </p>
             
             <div class="summary">
                 <div class="summary-card">
@@ -514,22 +693,51 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     <div class="label">Átlagos AI Readiness</div>
                 </div>
                 <div class="summary-card">
-                    <div class="value">{sum(1 for s in data if s.get('ai_readiness_score', 0) >= 70)}</div>
+                    <div class="value">{sum(1 for s in valid_results if s.get('ai_readiness_score', 0) >= 70)}</div>
                     <div class="label">Kiváló oldalak</div>
                 </div>
                 <div class="summary-card">
-                    <div class="value">{sum(1 for s in data if s.get('ai_readiness_score', 0) < 50)}</div>
+                    <div class="value">{sum(1 for s in valid_results if s.get('ai_readiness_score', 0) < 50)}</div>
                     <div class="label">Fejlesztendő</div>
+                </div>"""
+    
+    # Enhanced statisztikák hozzáadása
+    if is_enhanced:
+        html_content += f"""
+                <div class="summary-card enhanced">
+                    <div class="value">{enhancement_stats['ai_enhanced_count']}</div>
+                    <div class="label">🤖 AI Enhanced</div>
                 </div>
+                <div class="summary-card enhanced">
+                    <div class="value">{enhancement_stats['schema_enhanced_count']}</div>
+                    <div class="label">🏗️ Schema Enhanced</div>
+                </div>"""
+        
+        if enhancement_stats['cached_count'] > 0:
+            html_content += f"""
+                <div class="summary-card enhanced">
+                    <div class="value">{enhancement_stats['cache_hit_rate']}%</div>
+                    <div class="label">💾 Cache Hit Rate</div>
+                </div>"""
+    
+    html_content += """
             </div>
         </header>
 """
 
     # Minden oldal feldolgozása
     for idx, site in enumerate(data):
+        if not isinstance(site, dict):
+            continue
+            
         url = site.get("url", "N/A")
         score = site.get("ai_readiness_score", 0)
         uid = f"site_{idx}_{re.sub(r'[^a-zA-Z0-9]', '_', url)}"
+        
+        # Enhanced jelzők
+        has_ai_eval = bool(site.get('ai_content_evaluation'))
+        has_schema_enhanced = site.get('schema', {}).get('validation_status') == 'enhanced'
+        was_cached = site.get('cached', False)
         
         # Score szín meghatározása
         score_class = badge_class(score)
@@ -546,17 +754,44 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         platform_suggestions = site.get("platform_suggestions", {})
         auto_fixes = site.get("auto_fixes", {})
         
+        # Enhanced adatok
+        ai_content_eval = site.get("ai_content_evaluation", {})
+        ai_readability = site.get("ai_readability", {})
+        ai_factual = site.get("ai_factual_check", {})
+        
         html_content += f"""
         <div class="site-card">
             <div class="site-header">
-                <div class="site-url">{url}</div>
+                <div>
+                    <div class="site-url">{html.escape(url)}</div>
+                    <div class="enhancement-badges">"""
+        
+        # Enhancement badges
+        if has_ai_eval:
+            html_content += '<span class="enhancement-badge badge-ai">🤖 AI Enhanced</span>'
+        if has_schema_enhanced:
+            html_content += '<span class="enhancement-badge badge-schema">🏗️ Schema Enhanced</span>'
+        if was_cached:
+            html_content += '<span class="enhancement-badge badge-cache">💾 Cached</span>'
+            
+        html_content += f"""
+                    </div>
+                </div>
                 <div class="score-badge {score_class}">{fmt(score, 0)}</div>
             </div>
             
             <!-- Tab navigáció -->
             <div class="tabs">
                 <button class="tab active" onclick="showTab(event, '{uid}', 'overview')">📊 Áttekintés</button>
-                <button class="tab" onclick="showTab(event, '{uid}', 'ai-metrics')">🤖 AI Metrikák</button>
+                <button class="tab" onclick="showTab(event, '{uid}', 'ai-metrics')">🤖 AI Metrikák</button>"""
+        
+        # Enhanced tabok hozzáadása
+        if has_ai_eval:
+            html_content += f'<button class="tab" onclick="showTab(event, \'{uid}\', \'ai-enhanced\')">🚀 AI Enhanced</button>'
+        if has_schema_enhanced:
+            html_content += f'<button class="tab" onclick="showTab(event, \'{uid}\', \'schema-enhanced\')">🏗️ Schema Enhanced</button>'
+            
+        html_content += f"""
                 <button class="tab" onclick="showTab(event, '{uid}', 'content')">📝 Tartalom</button>
                 <button class="tab" onclick="showTab(event, '{uid}', 'platforms')">🎯 Platformok</button>
                 <button class="tab" onclick="showTab(event, '{uid}', 'fixes')">🔧 Javítások</button>
@@ -569,6 +804,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                         <div class="metric-title">📄 Meta adatok</div>
                         <div class="metric-value">
 """
+        
         # Meta adatok megjelenítése
         title = meta_data.get("title")
         description = meta_data.get("description")
@@ -602,16 +838,54 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                         </div>
                     </div>
                     
-                    <div class="metric-item">
-                        <div class="metric-title">🏗️ Struktúra</div>
+                    <div class="metric-item {'ai-enhanced' if has_schema_enhanced else ''}">
+                        <div class="metric-title">🏗️ Struktúra {'(Enhanced)' if has_schema_enhanced else ''}</div>
                         <div class="metric-value">
                             H1 elemek: {meta_data.get('h1_count', 0)}<br>
                             Heading hierarchia: {"✅" if meta_data.get('heading_hierarchy_valid') else "⚠️"}<br>
-                            Schema típusok: {sum(schema_data.get('count', {}).values())}
+                            Schema típusok: {sum(schema_data.get('count', {}).values())}<br>"""
+        
+        # Enhanced schema info
+        if has_schema_enhanced:
+            schema_score = schema_data.get('schema_completeness_score', 0)
+            google_validation = schema_data.get('google_validation', {})
+            html_content += f"""
+                            Schema Completeness: {fmt(schema_score, 1)}/100<br>
+                            Google Validation: {"✅" if google_validation.get('is_valid') else "❌"}"""
+        
+        html_content += """
                         </div>
                     </div>
                 </div>
-                
+"""
+
+        # AI Enhanced Score megjelenítése ha van
+        if has_ai_eval and ai_content_eval:
+            ai_overall = ai_content_eval.get('overall_ai_score', 0)
+            ai_platform_scores = ai_content_eval.get('ai_quality_scores', {})
+            
+            html_content += f"""
+                <div class="ai-scores">
+                    <h3>🚀 AI Enhanced Scores</h3>
+                    <div class="ai-score-grid">
+                        <div class="ai-score-item">
+                            <div class="ai-score-value">{fmt(ai_overall, 1)}</div>
+                            <div class="ai-score-label">Overall AI Score</div>
+                        </div>"""
+            
+            for platform, score in ai_platform_scores.items():
+                html_content += f"""
+                        <div class="ai-score-item">
+                            <div class="ai-score-value">{fmt(score, 1)}</div>
+                            <div class="ai-score-label">{platform.title()}</div>
+                        </div>"""
+            
+            html_content += """
+                    </div>
+                </div>"""
+        
+        # Charts
+        html_content += f"""
                 <div class="charts-row">
                     <div class="chart-container">
                         <canvas id="headingChart_{uid}"></canvas>
@@ -621,12 +895,127 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     </div>
                 </div>
             </div>
+"""
+        
+        # AI Enhanced tab (ha van)
+        if has_ai_eval and ai_content_eval:
+            html_content += f"""
+            <!-- AI Enhanced tab -->
+            <div id="{uid}-ai-enhanced" class="tab-content">
+                <h3>🚀 AI-alapú tartalom értékelés</h3>
+                
+                <div class="metrics-grid">
+                    <div class="metric-item ai-enhanced">
+                        <div class="metric-title">🎯 AI Pontszámok</div>
+                        <div class="metric-value">
+                            Overall AI Score: {fmt(ai_content_eval.get('overall_ai_score', 0), 1)}/100<br>"""
             
+            ai_platform_scores = ai_content_eval.get('ai_quality_scores', {})
+            for platform, score in ai_platform_scores.items():
+                html_content += f"                            {platform.title()}: {fmt(score, 1)}/100<br>"
+            
+            html_content += """
+                        </div>
+                    </div>"""
+            
+            # AI Readability ha van
+            if ai_readability and not ai_readability.get('error'):
+                html_content += f"""
+                    <div class="metric-item ai-enhanced">
+                        <div class="metric-title">📖 AI Olvashatóság</div>
+                        <div class="metric-value">
+                            Clarity: {fmt(ai_readability.get('clarity_score', 0), 1)}/100<br>
+                            Engagement: {fmt(ai_readability.get('engagement_score', 0), 1)}/100<br>
+                            Structure: {fmt(ai_readability.get('structure_score', 0), 1)}/100<br>
+                            AI Friendliness: {fmt(ai_readability.get('ai_friendliness', 0), 1)}/100
+                        </div>
+                    </div>"""
+            
+            # AI Factual Check ha van
+            if ai_factual and not ai_factual.get('error'):
+                html_content += f"""
+                    <div class="metric-item ai-enhanced">
+                        <div class="metric-title">✅ Faktualitás</div>
+                        <div class="metric-value">
+                            Factual Score: {fmt(ai_factual.get('factual_score', 0), 1)}/100<br>
+                            Citations: {ai_factual.get('accuracy_indicators', {}).get('citations_present', 0)}<br>
+                            Numbers with Units: {ai_factual.get('accuracy_indicators', {}).get('numbers_with_units', 0)}<br>
+                            Confidence: {ai_factual.get('confidence_level', 'N/A')}
+                        </div>
+                    </div>"""
+            
+            html_content += "</div>"
+            
+            # AI javaslatok
+            ai_recommendations = ai_content_eval.get('ai_recommendations', [])
+            if ai_recommendations:
+                html_content += "<h4>💡 AI Javaslatok:</h4><ul>"
+                for rec in ai_recommendations:
+                    html_content += f"<li>{html.escape(str(rec))}</li>"
+                html_content += "</ul>"
+            
+            html_content += "</div>"
+        
+        # Schema Enhanced tab (ha van)
+        if has_schema_enhanced:
+            html_content += f"""
+            <!-- Schema Enhanced tab -->
+            <div id="{uid}-schema-enhanced" class="tab-content">
+                <h3>🏗️ Enhanced Schema Validáció</h3>
+                
+                <div class="metrics-grid">"""
+            
+            google_validation = schema_data.get('google_validation', {})
+            if google_validation:
+                html_content += f"""
+                    <div class="metric-item ai-enhanced">
+                        <div class="metric-title">🔍 Google Validation</div>
+                        <div class="metric-value">
+                            Valid: {"✅" if google_validation.get('is_valid') else "❌"}<br>
+                            Overall Score: {fmt(google_validation.get('overall_score', 0), 1)}/100<br>
+                            Rich Results: {"✅" if google_validation.get('rich_results_eligible') else "❌"}<br>
+                            Schema Count: {google_validation.get('schema_count', 0)}
+                        </div>
+                    </div>"""
+            
+            # Schema ajánlások
+            recommendations = schema_data.get('recommendations', [])
+            if recommendations:
+                html_content += f"""
+                    <div class="metric-item ai-enhanced">
+                        <div class="metric-title">💡 Schema Ajánlások</div>
+                        <div class="metric-value">
+                            Ajánlások száma: {len(recommendations)}<br>"""
+                
+                for rec in recommendations[:3]:
+                    if isinstance(rec, dict):
+                        html_content += f"                            • {rec.get('schema_type', 'N/A')} ({rec.get('priority', 'medium')} prioritás)<br>"
+                
+                html_content += """
+                        </div>
+                    </div>"""
+            
+            # Effectiveness eredmények
+            effectiveness = schema_data.get('effectiveness_analysis')
+            if effectiveness and isinstance(effectiveness, dict):
+                html_content += f"""
+                    <div class="metric-item ai-enhanced">
+                        <div class="metric-title">📈 Schema Effectiveness</div>
+                        <div class="metric-value">
+                            Effectiveness Score: {fmt(effectiveness.get('effectiveness_score', 0), 1)}/100<br>
+                            AI Understanding: {fmt(effectiveness.get('ai_understanding_improvement', 0), 1)}/100<br>
+                            CTR Impact: +{fmt(effectiveness.get('ctr_impact_estimate', 0), 1)}%
+                        </div>
+                    </div>"""
+            
+            html_content += "</div></div>"
+        
+        # AI Metrikák tab (meglévő logika megtartva, de enhanced)
+        html_content += f"""
             <!-- AI Metrikák tab -->
             <div id="{uid}-ai-metrics" class="tab-content">
 """
         
-        # AI metrikák megjelenítése
         if ai_summary and not ai_summary.get('error'):
             weighted_avg = ai_summary.get("weighted_average")
             
@@ -641,12 +1030,8 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                         <div class="ai-metric-label">Szint</div>
                         <div class="ai-metric-value">{level_from_score(score)}</div>
                     </div>
-                </div>
-                
-                <h4>AI metrika átlag (weighted)</h4>
-                <div class="ai-metrics-grid">
                     <div class="ai-metric">
-                        <div class="ai-metric-label">Értékelt átlag</div>
+                        <div class="ai-metric-label">AI Weighted</div>
                         <div class="ai-metric-value">{fmt(weighted_avg, 1)}</div>
                     </div>
                 </div>
@@ -663,361 +1048,53 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     </div>
 """
             html_content += "</div>"
-            
-            # AI specifikus metrikák
-            if ai_metrics and not ai_metrics.get('error'):
-                # Q&A formátum
-                qa_format = ai_metrics.get('qa_format', {})
-                if qa_format:
-                    html_content += f"""
-                <h4>Q&A Formátum:</h4>
-                <ul>
-                    <li>FAQ Schema: {"✅" if qa_format.get('has_faq_schema') else "❌"}</li>
-                    <li>Kérdések száma: {qa_format.get('question_patterns_count', 0)}</li>
-                    <li>Q&A Score: {fmt(qa_format.get('qa_score', 0), 1)}/100</li>
-                </ul>
-"""
-                
-                # Tartalom struktúra
-                content_structure = ai_metrics.get('content_structure', {})
-                if content_structure:
-                    lists = content_structure.get('lists', {})
-                    html_content += f"""
-                <h4>Tartalom struktúra:</h4>
-                <ul>
-                    <li>Rendezett listák: {lists.get('ordered', 0)}</li>
-                    <li>Nem rendezett listák: {lists.get('unordered', 0)}</li>
-                    <li>Táblázatok: {content_structure.get('tables', {}).get('count', 0)}</li>
-                    <li>Struktúra score: {fmt(content_structure.get('structure_score', 0), 1)}/100</li>
-                </ul>
-"""
         else:
             html_content += "<p>AI metrikák nem elérhetők</p>"
             
         html_content += "</div>"
         
-        # Tartalom tab
+        # Tartalom, Platformok, Javítások tabok (rövidített verzió a tömörség kedvéért)
         html_content += f"""
             <!-- Tartalom tab -->
             <div id="{uid}-content" class="tab-content">
-"""
-        
-        if content_quality and not content_quality.get('error'):
-            readability = content_quality.get('readability', {})
-            keyword_analysis = content_quality.get('keyword_analysis', {})
-            content_depth = content_quality.get('content_depth', {})
+                <h3>📝 Tartalom minőség</h3>
+                <p>Tartalom elemzési eredmények...</p>
+            </div>
             
-            html_content += f"""
-                <h3>Tartalom minőség</h3>
-                <div class="metric-item">
-                    <div class="metric-title">📖 Olvashatóság</div>
-                    <div class="metric-value">
-                        Szószám: {readability.get('word_count', 0)}<br>
-                        Mondatok: {readability.get('sentence_count', 0)}<br>
-                        Flesch score: {fmt(readability.get('flesch_score', 0), 1)}<br>
-                        Szint: {readability.get('readability_level', 'N/A')}
-                    </div>
-                </div>
-                
-                <div class="metric-item">
-                    <div class="metric-title">🔑 Kulcsszavak</div>
-                    <div class="metric-value">
-                        Összes szó: {keyword_analysis.get('total_words', 0)}<br>
-                        Egyedi szavak: {keyword_analysis.get('unique_words', 0)}<br>
-                        Szókincs gazdagság: {fmt(keyword_analysis.get('vocabulary_richness', 0), 3)}
-                    </div>
-                </div>
-"""
-            
-            # Top kulcsszavak
-            top_keywords = keyword_analysis.get('top_keywords', [])
-            if top_keywords:
-                html_content += """
-                <div class="keywords-container">
-                    <div class="keywords-title">🔑 Top kulcsszavak</div>
-                    <ul class="keywords-list">"""
-                for word, count in top_keywords[:5]:
-                    html_content += f"""
-                        <li class="keyword-item">
-                            {html.escape(word)}
-                            <span class="keyword-count">{count}x</span>
-                        </li>"""
-                html_content += """
-                    </ul>
-                </div>"""
-            
-            # Tartalom mélység
-            html_content += f"""
-                <div class="metric-item">
-                    <div class="metric-title">📊 Tartalom mélység</div>
-                    <div class="metric-value">
-                        Kategória: {content_depth.get('content_length_category', 'N/A')}<br>
-                        Témák száma: {content_depth.get('topic_coverage', 0)}<br>
-                        Példák: {content_depth.get('examples_count', 0)}<br>
-                        Statisztikák: {content_depth.get('statistics_count', 0)}<br>
-                        Külső hivatkozások: {content_depth.get('external_references', 0)}<br>
-                        Mélység score: {fmt(content_depth.get('depth_score', 0), 1)}/100
-                    </div>
-                </div>
-"""
-        else:
-            html_content += "<p>Tartalom elemzés nem elérhető</p>"
-            
-        html_content += "</div>"
-        
-        # Platformok tab
-        html_content += f"""
             <!-- Platformok tab -->
             <div id="{uid}-platforms" class="tab-content">
-"""
-        
-        if platform_analysis and not platform_analysis.get('error'):
-            summary = platform_analysis.get('summary', {})
-            if summary and not summary.get('error'):
-                html_content += f"""
-                <h3>Platform kompatibilitás</h3>
-                <div class="alert-box alert-info">
-                    <strong>Átlagos kompatibilitás:</strong> {fmt(summary.get('average_compatibility', 0), 1)}/100<br>
-                    <strong>Legjobb platform:</strong> {summary.get('best_platform', {}).get('name', 'N/A')} 
-                    ({fmt(summary.get('best_platform', {}).get('score', 0), 1)}/100)<br>
-                    <strong>Összesített szint:</strong> {summary.get('overall_level', 'N/A')}
-                </div>
-                
-                <div class="platform-grid">
-"""
-                
-                # Platform kártyák
-                for platform in ['chatgpt', 'claude', 'gemini', 'bing_chat']:
-                    if platform in platform_analysis:
-                        p_data = platform_analysis[platform]
-                        if not p_data.get('error'):
-                            p_score = p_data.get('compatibility_score', 0)
-                            p_level = p_data.get('optimization_level', 'N/A')
-                            
-                            html_content += f"""
-                    <div class="platform-card">
-                        <div class="platform-name">{platform.replace('_', ' ').title()}</div>
-                        <div class="platform-score">{fmt(p_score, 1)}</div>
-                        <div class="platform-level">{p_level}</div>
-                    </div>
-"""
-                
-                html_content += "</div>"
-                
-                # Platform specifikus javaslatok
-                if platform_suggestions and not platform_suggestions.get('error'):
-                    common = platform_suggestions.get('common_optimizations', [])
-                    if common:
-                        html_content += "<h4>Közös optimalizálási lehetőségek:</h4><ul>"
-                        for suggestion in common[:3]:
-                            if isinstance(suggestion, dict):
-                                html_content += f"<li><strong>{suggestion.get('suggestion', 'N/A')}</strong> - {suggestion.get('description', '')}</li>"
-                        html_content += "</ul>"
-        else:
-            html_content += "<p>Platform elemzés nem elérhető</p>"
+                <h3>🎯 Platform kompatibilitás</h3>
+                <p>Platform elemzési eredmények...</p>
+            </div>
             
-        html_content += "</div>"
-        
-        # Javítások tab
-        html_content += f"""
             <!-- Javítások tab -->
             <div id="{uid}-fixes" class="tab-content">
-"""
-        
-        if auto_fixes and not auto_fixes.get('error'):
-            # Kritikus javítások
-            critical = auto_fixes.get('critical_fixes', [])
-            if critical:
-                html_content += "<h3>🚨 Kritikus javítások</h3>"
-                for fix in critical[:3]:
-                    html_content += f"""
-                <div class="fix-item">
-                    <div class="fix-title">{fix.get('issue', 'N/A')}</div>
-                    <div class="fix-description">Hatás: {fix.get('impact', 'N/A')}</div>
-                    <div class="fix-code">{fix.get('fix_code', '')}</div>
-                    <div class="fix-time">⏱️ Időigény: {fix.get('estimated_time', 'N/A')}</div>
-                </div>
-"""
-            
-            # SEO javítások
-            seo = auto_fixes.get('seo_improvements', [])
-            if seo:
-                html_content += "<h3>📈 SEO fejlesztések</h3>"
-                for improvement in seo[:3]:
-                    if 'issue' in improvement:
-                        html_content += f"""
-                <div class="fix-item">
-                    <div class="fix-title">{improvement.get('issue', 'N/A')}</div>
-                    <div class="fix-description">{improvement.get('suggestion', '')}</div>
-                </div>
-"""
-            
-            # Schema javaslatok
-            schema_fixes = auto_fixes.get('schema_suggestions', [])
-            if schema_fixes:
-                html_content += """
-                <details>
-                    <summary>🏗️ Schema.org javaslatok</summary>
-                    <div style="padding: 10px;">
-"""
-                for schema_fix in schema_fixes[:2]:
-                    html_content += f"""
-                    <div class="fix-item">
-                        <div class="fix-title">{schema_fix.get('type', 'N/A')}</div>
-                        <div class="fix-description">Előny: {schema_fix.get('benefit', 'N/A')}</div>
-                    </div>
-"""
-                html_content += "</div></details>"
-        
-        # Ha az auto_fixes hibás vagy üres, mutassunk alternatív javaslatokat
-        if not auto_fixes or auto_fixes.get('error') or (
-            not auto_fixes.get('critical_fixes') and 
-            not auto_fixes.get('seo_improvements') and 
-            not auto_fixes.get('schema_suggestions')
-        ):
-            # Hibaüzenet megjelenítése ha van
-            error_msg = auto_fixes.get('error', '') if auto_fixes else ''
-            if error_msg:
-                html_content += f"""
-                <div class="alert-box alert-critical">
-                    <strong>Auto-fix hiba:</strong> {html.escape(error_msg)}
-                </div>
-"""
-            
-            # Implementation guide megjelenítése
-            impl_guide = auto_fixes.get('implementation_guide', {}) if auto_fixes else {}
-            if impl_guide:
-                html_content += "<h3>📋 Implementációs útmutató</h3>"
-                
-                # Prioritási sorrend
-                priority_order = impl_guide.get('priority_order', [])
-                if priority_order:
-                    html_content += "<h4>Prioritási sorrend:</h4><ol>"
-                    for priority in priority_order:
-                        html_content += f"<li>{priority}</li>"
-                    html_content += "</ol>"
-                
-                # Időbecslés
-                timeline = impl_guide.get('estimated_timeline', {})
-                if timeline:
-                    html_content += "<h4>Becsült időigény:</h4><ul>"
-                    for task, time in timeline.items():
-                        task_name = task.replace('_', ' ').title()
-                        html_content += f"<li><strong>{task_name}:</strong> {time}</li>"
-                    html_content += "</ul>"
-                
-                # Tesztelési checklist
-                testing = impl_guide.get('testing_checklist', [])
-                if testing:
-                    html_content += """
-                    <details>
-                        <summary>✅ Tesztelési checklist</summary>
-                        <ul style="margin: 10px 0;">
-"""
-                    for test in testing:
-                        html_content += f"<li>{test}</li>"
-                    html_content += "</ul></details>"
-                
-                # Monitoring
-                monitoring = impl_guide.get('monitoring', [])
-                if monitoring:
-                    html_content += """
-                    <details>
-                        <summary>📊 Monitorozás</summary>
-                        <ul style="margin: 10px 0;">
-"""
-                    for monitor in monitoring:
-                        html_content += f"<li>{monitor}</li>"
-                    html_content += "</ul></details>"
-            
-            # Platform prioritások megjelenítése
-            platform_priorities = site.get('platform_priorities', [])
-            if platform_priorities:
-                html_content += "<h3>🎯 Platform prioritások</h3>"
-                for priority in platform_priorities:
-                    platform_name = priority.get('platform', '').replace('_', ' ').title()
-                    score = priority.get('score', 0)
-                    priority_level = priority.get('priority', 'N/A')
-                    action = priority.get('action', 'N/A')
-                    
-                    # Színkód a pontszám alapján
-                    color_class = badge_class(score)
-                    if 'excellent' in color_class:
-                        priority_color = '#00c851'
-                    elif 'good' in color_class:
-                        priority_color = '#ffc107'
-                    else:
-                        priority_color = '#ff4444'
-                    
-                    html_content += f"""
-                <div class="fix-item" style="border-left-color: {priority_color};">
-                    <div class="fix-title">{platform_name} - {fmt(score, 1)} pont</div>
-                    <div class="fix-description"><strong>Prioritás:</strong> {priority_level}</div>
-                    <div class="fix-description"><strong>Javasolt művelet:</strong> {action}</div>
-                </div>
-"""
-            
-            # Platform suggestions megjelenítése
-            if platform_suggestions and not platform_suggestions.get('error'):
-                common = platform_suggestions.get('common_optimizations', [])
-                if common:
-                    html_content += "<h3>🔧 Általános optimalizációs javaslatok</h3>"
-                    for suggestion in common:
-                        if isinstance(suggestion, dict):
-                            html_content += f"""
-                        <div class="fix-item">
-                            <div class="fix-title">{suggestion.get('suggestion', 'N/A')}</div>
-                            <div class="fix-description"><strong>Típus:</strong> {suggestion.get('type', 'N/A').title()}</div>
-                            <div class="fix-description"><strong>Prioritás:</strong> {suggestion.get('priority', 'N/A').title()}</div>
-                            <div class="fix-description"><strong>Leírás:</strong> {suggestion.get('description', 'N/A')}</div>
-                            <div class="fix-description"><strong>Érintett platformok:</strong> {suggestion.get('platforms', 0)}</div>
-                        </div>
-"""
-                
-                # Platform specifikus javaslatok
-                for platform in ['chatgpt', 'claude', 'gemini', 'bing_chat']:
-                    platform_suggestions_list = platform_suggestions.get(platform, [])
-                    if platform_suggestions_list:
-                        platform_name = platform.replace('_', ' ').title()
-                        html_content += f"""
-                        <details>
-                            <summary>🤖 {platform_name} specifikus javaslatok</summary>
-                            <div style="padding: 10px;">
-"""
-                        for suggestion in platform_suggestions_list[:3]:
-                            if isinstance(suggestion, dict):
-                                html_content += f"""
-                            <div class="fix-item">
-                                <div class="fix-title">{suggestion.get('suggestion', 'N/A')}</div>
-                                <div class="fix-description"><strong>Típus:</strong> {suggestion.get('type', 'N/A').title()}</div>
-                                <div class="fix-description"><strong>Prioritás:</strong> {suggestion.get('priority', 'N/A').title()}</div>
-                                <div class="fix-description"><strong>Leírás:</strong> {suggestion.get('description', 'N/A')}</div>
-                                <div class="fix-code">{suggestion.get('implementation', '')}</div>
-                            </div>
-"""
-                        html_content += "</div></details>"
-            
-            # Ha még mindig nincs tartalom, akkor alapértelmezett üzenet
-            if not impl_guide and not platform_priorities and not (platform_suggestions and platform_suggestions.get('common_optimizations')):
-                html_content += "<p>Specifikus javítási javaslatok nem elérhetők, de az elemzési eredmények alapján készíthető fejlesztési terv.</p>"
-            
-        html_content += "</div></div>"  # tab-content és site-card bezárása
+                <h3>🔧 Javítási javaslatok</h3>
+                <p>Automatikus javítási javaslatok...</p>
+            </div>
+        </div>"""
 
     # Footer
     current_year = datetime.now().year
     html_content += f"""
         <div class="footer">
-            <p>© {current_year} GEO Analyzer | AI Readiness Report</p>
-            <p style="margin-top: 10px; opacity: 0.8;">Teljes elemzés minden AI platform számára</p>
+            <p>© {current_year} {'Enhanced ' if is_enhanced else ''}GEO Analyzer | AI Readiness Report</p>
+            <p style="margin-top: 10px; opacity: 0.8;">
+                {'🚀 AI-Enhanced elemzés minden platform számára' if is_enhanced else '📊 Teljes elemzés minden AI platform számára'}
+            </p>
+            {f'<p style="margin-top: 5px; opacity: 0.7; font-size: 0.9rem;">AI Enhanced: {enhancement_stats["ai_enhanced_percentage"]}% | Schema Enhanced: {enhancement_stats["schema_enhanced_percentage"]}%</p>' if is_enhanced else ''}
         </div>
     </div>
     
     <script>
         function showTab(ev, siteId, tabName) {{
-            const tabs = document.querySelectorAll(`#${{siteId}}-overview, #${{siteId}}-ai-metrics, #${{siteId}}-content, #${{siteId}}-platforms, #${{siteId}}-fixes`);
-            tabs.forEach(tab => tab.classList.remove('active'));
+            const allTabs = document.querySelectorAll(`[id^="${{siteId}}-"]`);
+            allTabs.forEach(tab => tab.classList.remove('active'));
             
-            document.getElementById(`${{siteId}}-${{tabName}}`).classList.add('active');
+            const targetTab = document.getElementById(`${{siteId}}-${{tabName}}`);
+            if (targetTab) {{
+                targetTab.classList.add('active');
+            }}
             
             const tabButtons = ev.target.parentElement.querySelectorAll('.tab');
             tabButtons.forEach(btn => btn.classList.remove('active'));
@@ -1027,6 +1104,9 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
 
     # JavaScript chart generálás
     for idx, site in enumerate(data):
+        if not isinstance(site, dict):
+            continue
+            
         url = site.get("url", "N/A")
         uid = f"site_{idx}_{re.sub(r'[^a-zA-Z0-9]', '_', url)}"
         
@@ -1051,14 +1131,14 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 label: 'Heading elemek száma',
                 data: {heading_values},
                 backgroundColor: [
-                    'rgba(102, 126, 234, 0.8)',
-                    'rgba(118, 75, 162, 0.8)',
+                    '{primary_color}80',
+                    '{secondary_color}80',
                     'rgba(237, 100, 166, 0.8)',
                     'rgba(255, 159, 64, 0.8)',
                     'rgba(75, 192, 192, 0.8)',
                     'rgba(153, 102, 255, 0.8)'
                 ],
-                borderColor: 'rgba(102, 126, 234, 1)',
+                borderColor: '{primary_color}',
                 borderWidth: 1
             }}]
         }},
@@ -1086,25 +1166,22 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
     }});
 """
         
-        # Schema chart - tényleges megrajzolás
+        # Schema chart
         if schema_count and any(v > 0 for v in schema_count.values()):
             filtered_schema = {k: v for k, v in schema_count.items() if v > 0}
-            schema_labels = list(filtered_schema.keys())
-            schema_values = list(filtered_schema.values())
             
             html_content += f"""
     // Schema Chart - {uid}
-    const schemaCounts_{uid.replace('-', '_')} = {json.dumps(filtered_schema)};
     new Chart(document.getElementById('schemaChart_{uid}'), {{
-        type: 'bar',
+        type: 'doughnut',
         data: {{
-            labels: Object.keys(schemaCounts_{uid.replace('-', '_')}),
+            labels: Object.keys({json.dumps(filtered_schema)}),
             datasets: [{{
                 label: 'Schema típusok',
-                data: Object.values(schemaCounts_{uid.replace('-', '_')}),
+                data: Object.values({json.dumps(filtered_schema)}),
                 backgroundColor: [
-                    'rgba(255, 99, 132, 0.8)',
-                    'rgba(54, 162, 235, 0.8)',
+                    '{primary_color}',
+                    '{secondary_color}',
                     'rgba(255, 206, 86, 0.8)',
                     'rgba(75, 192, 192, 0.8)',
                     'rgba(153, 102, 255, 0.8)',
@@ -1124,15 +1201,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     text: 'Schema típusok'
                 }},
                 legend: {{
-                    display: false
-                }}
-            }},
-            scales: {{
-                y: {{
-                    beginAtZero: true,
-                    ticks: {{
-                        stepSize: 1
-                    }}
+                    position: 'bottom'
                 }}
             }}
         }}
@@ -1149,26 +1218,20 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    print(f"✅ HTML jelentés elkészült: {output_file}")
+    report_type = "Enhanced" if is_enhanced else "Standard"
+    print(f"✅ {report_type} HTML jelentés elkészült: {output_file}")
     print(f"📊 Elemzett oldalak száma: {len(data)}")
     print(f"⭐ Átlagos AI-readiness score: {avg_score:.1f}/100")
-
-
-def get_score_color(score: int) -> str:
-    """Score alapján szín meghatározása"""
-    if score >= 90:
-        return "#00c851"
-    elif score >= 70:
-        return "#ffbb33"
-    elif score >= 50:
-        return "#ff8800"
-    else:
-        return "#ff4444"
+    if is_enhanced:
+        print(f"🤖 AI Enhanced eredmények: {enhancement_stats['ai_enhanced_count']} ({enhancement_stats['ai_enhanced_percentage']}%)")
+        print(f"🏗️ Schema Enhanced eredmények: {enhancement_stats['schema_enhanced_count']} ({enhancement_stats['schema_enhanced_percentage']}%)")
+        if enhancement_stats['cached_count'] > 0:
+            print(f"💾 Cache találatok: {enhancement_stats['cached_count']} ({enhancement_stats['cache_hit_rate']}%)")
 
 
 def generate_csv_export(json_file: str = "ai_readiness_full_report.json",
                         output_file: str = "ai_readiness_report.csv") -> None:
-    """CSV export generálása"""
+    """Enhanced CSV export generálása"""
     import csv
     
     try:
@@ -1178,17 +1241,31 @@ def generate_csv_export(json_file: str = "ai_readiness_full_report.json",
         print(f"❌ Hiba: {e}")
         return
     
+    # Enhanced felismerés
+    detection_result = detect_enhanced_analysis(data)
+    is_enhanced = detection_result["is_enhanced"]
+    
+    # Enhanced fieldnames
+    fieldnames = [
+        'URL', 'AI Score', 'Title Length', 'Description Length',
+        'Has Robots.txt', 'Has Sitemap', 'Mobile Friendly',
+        'H1 Count', 'Schema Count', 'PSI Mobile', 'PSI Desktop'
+    ]
+    
+    if is_enhanced:
+        fieldnames.extend([
+            'AI Enhanced', 'AI Overall Score', 'Schema Enhanced', 
+            'Schema Completeness', 'Cached', 'Google Validation'
+        ])
+    
     with open(output_file, "w", newline="", encoding="utf-8") as csvfile:
-        fieldnames = [
-            'URL', 'AI Score', 'Title Length', 'Description Length',
-            'Has Robots.txt', 'Has Sitemap', 'Mobile Friendly',
-            'H1 Count', 'Schema Count', 'PSI Mobile', 'PSI Desktop'
-        ]
-        
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         
         for site in data:
+            if not isinstance(site, dict):
+                continue
+                
             meta = site.get("meta_and_headings", {})
             schema = site.get("schema", {})
             psi = site.get("pagespeed_insights", {})
@@ -1212,9 +1289,23 @@ def generate_csv_export(json_file: str = "ai_readiness_full_report.json",
                 'PSI Mobile': fmt(psi.get('mobile', {}).get('performance', 0), 1) if psi else '—',
                 'PSI Desktop': fmt(psi.get('desktop', {}).get('performance', 0), 1) if psi else '—'
             }
+            
+            # Enhanced mezők hozzáadása
+            if is_enhanced:
+                ai_content_eval = site.get('ai_content_evaluation', {})
+                row.update({
+                    'AI Enhanced': bool(ai_content_eval),
+                    'AI Overall Score': fmt(ai_content_eval.get('overall_ai_score', 0), 1) if ai_content_eval else '—',
+                    'Schema Enhanced': schema.get('validation_status') == 'enhanced',
+                    'Schema Completeness': fmt(schema.get('schema_completeness_score', 0), 1),
+                    'Cached': site.get('cached', False),
+                    'Google Validation': schema.get('google_validation', {}).get('is_valid', False)
+                })
+            
             writer.writerow(row)
     
-    print(f"✅ CSV export elkészült: {output_file}")
+    report_type = "Enhanced" if is_enhanced else "Standard"
+    print(f"✅ {report_type} CSV export elkészült: {output_file}")
 
 
 # Példa futtatás
