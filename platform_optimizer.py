@@ -561,18 +561,21 @@ class BingChatOptimizer(AIPlattformOptimizer):
 
 
 class MultiPlatformGEOAnalyzer:
-    """Multi-platform GEO elemző főosztály"""
+    """Multi-platform GEO elemző főosztály - AI-enhanced verzió"""
     
-    def __init__(self):
+    def __init__(self, ai_evaluator=None, cache_manager=None):
         self.platforms = {
             'chatgpt': ChatGPTOptimizer(),
             'claude': ClaudeOptimizer(),
             'gemini': GeminiOptimizer(),
             'bing_chat': BingChatOptimizer()
         }
+        self.ai_evaluator = ai_evaluator
+        self.cache_manager = cache_manager
+        self.ml_scorer = MLPlatformScorer() if self._ml_available() else None
     
     def analyze_all_platforms(self, html: str, url: str) -> Dict:
-        """Összes platform elemzése"""
+        """Összes platform elemzése AI-enhanced módon"""
         soup = BeautifulSoup(html, 'html.parser')
         
         # Tiszta szöveg kinyerése
@@ -580,9 +583,28 @@ class MultiPlatformGEOAnalyzer:
         
         results = {}
         
+        # Hagyományos platform elemzés
         for platform_name, optimizer in self.platforms.items():
             try:
-                results[platform_name] = optimizer.analyze_compatibility(soup, text_content)
+                traditional_result = optimizer.analyze_compatibility(soup, text_content)
+                
+                # AI-enhanced scoring ha elérhető
+                if self.ai_evaluator:
+                    ai_platform_score = self.ai_evaluator.platform_specific_evaluation(text_content, platform_name)
+                    # Hibrid scoring: hagyományos + AI
+                    enhanced_score = self._combine_scores(traditional_result, ai_platform_score)
+                    traditional_result.update(enhanced_score)
+                
+                # ML scoring ha elérhető
+                if self.ml_scorer:
+                    ml_score = self.ml_scorer.predict_platform_score(
+                        platform_name, text_content, self._extract_metadata(soup)
+                    )
+                    traditional_result["ml_score"] = ml_score
+                    traditional_result["hybrid_score"] = (traditional_result["compatibility_score"] + ml_score) / 2
+                
+                results[platform_name] = traditional_result
+                
             except Exception as e:
                 results[platform_name] = {
                     "platform": platform_name,
@@ -590,8 +612,15 @@ class MultiPlatformGEOAnalyzer:
                     "compatibility_score": 0
                 }
         
+        # AI-alapú összesített elemzés
+        if self.ai_evaluator:
+            ai_summary = self.ai_evaluator.evaluate_content_quality(
+                text_content, list(self.platforms.keys())
+            )
+            results['ai_analysis'] = ai_summary
+        
         # Összesített elemzés
-        results['summary'] = self._create_platform_summary(results)
+        results['summary'] = self._create_enhanced_platform_summary(results)
         
         return results
     
@@ -724,3 +753,159 @@ class MultiPlatformGEOAnalyzer:
             return "Jelentős fejlesztések szükségesek"
         else:
             return "Teljes újragondolás javasolt"
+    
+    def _ml_available(self) -> bool:
+        """ML modellek elérhetőségének ellenőrzése"""
+        try:
+            import pandas as pd
+            return True
+        except ImportError:
+            return False
+    
+    def _combine_scores(self, traditional: Dict, ai_result: Dict) -> Dict:
+        """Hagyományos és AI pontszámok kombinálása"""
+        if not ai_result or ai_result.get('error'):
+            return {"ai_enhanced": False}
+        
+        ai_score = ai_result.get('platform_score', 0)
+        traditional_score = traditional.get('compatibility_score', 0)
+        
+        # Súlyozott átlag: 60% hagyományos, 40% AI
+        hybrid_score = (traditional_score * 0.6) + (ai_score * 0.4)
+        
+        return {
+            "ai_enhanced": True,
+            "ai_score": ai_score,
+            "hybrid_compatibility_score": round(hybrid_score, 1),
+            "ai_suggestions": ai_result.get('optimization_suggestions', [])
+        }
+    
+    def _extract_metadata(self, soup: BeautifulSoup) -> Dict:
+        """Metadata kinyerése ML modell számára"""
+        return {
+            "external_links": len(soup.find_all('a', href=re.compile(r'^https?://'))),
+            "schema_count": len(soup.find_all("script", type="application/ld+json")),
+            "image_count": len(soup.find_all('img')),
+            "list_count": len(soup.find_all(['ul', 'ol'])),
+            "heading_count": len(soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])),
+            "table_count": len(soup.find_all('table'))
+        }
+    
+    def _create_enhanced_platform_summary(self, results: Dict) -> Dict:
+        """Enhanced platform összefoglaló létrehozása"""
+        scores = {}
+        hybrid_scores = {}
+        ai_scores = {}
+        levels = {}
+        
+        for platform, data in results.items():
+            if platform in ['summary', 'ai_analysis'] or 'error' in data:
+                continue
+                
+            scores[platform] = data.get('compatibility_score', 0)
+            hybrid_scores[platform] = data.get('hybrid_compatibility_score', scores[platform])
+            ai_scores[platform] = data.get('ai_score', 0)
+            levels[platform] = data.get('optimization_level', 'Ismeretlen')
+        
+        if not scores:
+            return {"error": "Nincs érvényes platform adat"}
+        
+        # Alapstatisztikák
+        avg_score = sum(scores.values()) / len(scores)
+        avg_hybrid = sum(hybrid_scores.values()) / len(hybrid_scores)
+        avg_ai = sum(ai_scores.values()) / len(ai_scores) if any(ai_scores.values()) else 0
+        
+        best_platform = max(hybrid_scores, key=hybrid_scores.get)
+        worst_platform = min(hybrid_scores, key=hybrid_scores.get)
+        
+        # AI elemzés összefoglalója
+        ai_summary = results.get('ai_analysis', {})
+        
+        return {
+            "average_compatibility": round(avg_score, 1),
+            "average_hybrid_score": round(avg_hybrid, 1),
+            "average_ai_score": round(avg_ai, 1),
+            "best_platform": {"name": best_platform, "score": hybrid_scores[best_platform]},
+            "worst_platform": {"name": worst_platform, "score": hybrid_scores[worst_platform]},
+            "platform_scores": scores,
+            "hybrid_scores": hybrid_scores,
+            "ai_scores": ai_scores,
+            "optimization_levels": levels,
+            "overall_level": self._get_overall_level(avg_hybrid),
+            "ai_enhanced": bool(ai_summary),
+            "ai_overall_score": ai_summary.get('overall_ai_score', 0),
+            "improvement_potential": round(max(hybrid_scores.values()) - min(hybrid_scores.values()), 1)
+        }
+
+
+class MLPlatformScorer:
+    """Machine Learning alapú platform scoring"""
+    
+    def __init__(self):
+        self.feature_weights = {
+            'chatgpt': {
+                'list_count': 0.25, 'question_count': 0.20, 'step_indicators': 0.30,
+                'word_count': 0.10, 'code_blocks': 0.15
+            },
+            'claude': {
+                'word_count': 0.30, 'external_links': 0.20, 'technical_depth': 0.25,
+                'context_indicators': 0.15, 'citations': 0.10
+            },
+            'gemini': {
+                'image_count': 0.25, 'freshness_indicators': 0.20, 'schema_count': 0.20,
+                'external_links': 0.15, 'structured_data': 0.20
+            },
+            'bing_chat': {
+                'external_links': 0.35, 'citations': 0.25, 'time_sensitivity': 0.20,
+                'source_indicators': 0.20
+            }
+        }
+    
+    def predict_platform_score(self, platform: str, content: str, metadata: Dict) -> float:
+        """Platform score predikció feature-alapú modellel"""
+        if platform not in self.feature_weights:
+            return 50.0  # Alapértelmezett
+        
+        features = self._extract_features(content, metadata)
+        weights = self.feature_weights[platform]
+        
+        score = 0
+        for feature, weight in weights.items():
+            feature_value = features.get(feature, 0)
+            normalized_value = min(100, feature_value * 10)  # Normalizálás
+            score += normalized_value * weight
+        
+        return round(min(100, max(0, score)), 1)
+    
+    def _extract_features(self, content: str, metadata: Dict) -> Dict:
+        """Feature extraction tartalomból és metadatából"""
+        content_lower = content.lower()
+        
+        features = {
+            # Alapvető metrikák
+            'word_count': len(content.split()) / 100,  # Normalizálva
+            'question_count': content.count('?'),
+            'list_count': metadata.get('list_count', 0),
+            'external_links': metadata.get('external_links', 0),
+            'schema_count': metadata.get('schema_count', 0),
+            'image_count': metadata.get('image_count', 0),
+            
+            # ChatGPT specifikus
+            'step_indicators': len(re.findall(r'\b(?:lépés|step)\s*\d+|\d+\.\s+[A-ZÁÉÍÓÖŐÚÜŰ]', content, re.I)),
+            'code_blocks': content.count('```') + content.count('<code>'),
+            
+            # Claude specifikus
+            'technical_depth': len(re.findall(r'\b[A-ZÁÉÍÓÖŐÚÜŰ][a-záéíóöőúüű]*(?:ás|és|ség|ság|izmus|ció)\b', content)),
+            'context_indicators': len(re.findall(r'\b(?:kontextus|background|áttekintés|however|nevertheless)\b', content_lower)),
+            'citations': len(re.findall(r'(?:forrás|source|according to|based on)', content_lower)),
+            
+            # Gemini specifikus
+            'freshness_indicators': len(re.findall(r'\b(?:202[4-5]|friss|new|latest|aktuális)\b', content_lower)),
+            'structured_data': metadata.get('table_count', 0) + metadata.get('heading_count', 0),
+            
+            # Bing specifikus
+            'source_indicators': len(re.findall(r'\b(?:forrás szerint|according to|based on)\b', content_lower)),
+            'time_sensitivity': len(re.findall(r'\b(?:ma|today|mostani|current)\b', content_lower))
+        }
+        
+        return features
