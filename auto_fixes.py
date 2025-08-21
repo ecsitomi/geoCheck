@@ -101,31 +101,61 @@ class AutoFixGenerator:
         }
     
     def generate_all_fixes(self, analysis_result: Dict, url: str) -> Dict:
-        """Összes automatikus javítás generálása"""
+        """Összes automatikus javítás generálása - JAVÍTVA"""
         
-        fixes = {
-            "critical_fixes": self._generate_critical_fixes(analysis_result, url),
-            "seo_improvements": self._generate_seo_improvements(analysis_result, url),
-            "schema_suggestions": self._generate_schema_fixes(analysis_result, url),
-            "content_optimizations": self._generate_content_fixes(analysis_result),
-            "technical_fixes": self._generate_technical_fixes(analysis_result),
-            "ai_readiness_fixes": self._generate_ai_fixes(analysis_result),
-            "implementation_guide": self._create_implementation_guide()
-        }
+        # JAVÍTÁS: Ellenőrizzük, hogy van-e érvényes analysis_result
+        if not analysis_result or not isinstance(analysis_result, dict):
+            return {
+                "error": "Nincs elemzési adat",
+                "critical_fixes": [],
+                "seo_improvements": [],
+                "schema_suggestions": [],
+                "content_optimizations": [],
+                "technical_fixes": [],
+                "ai_readiness_fixes": [],
+                "implementation_guide": {},
+                "prioritized_actions": []
+            }
         
-        # Prioritás szerinti rendezés
-        fixes["prioritized_actions"] = self._prioritize_fixes(fixes)
-        
-        return fixes
+        try:
+            fixes = {
+                "critical_fixes": self._generate_critical_fixes(analysis_result, url),
+                "seo_improvements": self._generate_seo_improvements(analysis_result, url),
+                "schema_suggestions": self._generate_schema_fixes(analysis_result, url),
+                "content_optimizations": self._generate_content_fixes(analysis_result),
+                "technical_fixes": self._generate_technical_fixes(analysis_result),
+                "ai_readiness_fixes": self._generate_ai_fixes(analysis_result),
+                "implementation_guide": self._create_implementation_guide()
+            }
+            
+            # Prioritás szerinti rendezés
+            fixes["prioritized_actions"] = self._prioritize_fixes(fixes)
+            
+            return fixes
+            
+        except Exception as e:
+            # Ha bármilyen hiba van, visszaadjuk az alap struktúrát
+            return {
+                "error": str(e),
+                "critical_fixes": [],
+                "seo_improvements": [],
+                "schema_suggestions": [],
+                "content_optimizations": [],
+                "technical_fixes": [],
+                "ai_readiness_fixes": [],
+                "implementation_guide": self._create_implementation_guide(),
+                "prioritized_actions": []
+            }
     
     def _generate_critical_fixes(self, analysis: Dict, url: str) -> List[Dict]:
-        """Kritikus hibák javítása"""
+        """Kritikus hibák javítása - JAVÍTVA"""
         critical_fixes = []
         
         meta_data = analysis.get("meta_and_headings", {})
         
-        # Hiányzó title
-        if not meta_data.get("title"):
+        # JAVÍTÁS: Biztonságos title kezelés
+        title = meta_data.get("title")
+        if not title:  # Ha None vagy üres string
             domain = urlparse(url).netloc
             suggested_title = self._suggest_title_from_domain(domain)
             
@@ -139,8 +169,9 @@ class AutoFixGenerator:
                 "implementation": "head szekció első eleme legyen"
             })
         
-        # Hiányzó meta description
-        if not meta_data.get("description"):
+        # JAVÍTÁS: Biztonságos description kezelés
+        description = meta_data.get("description")
+        if not description:  # Ha None vagy üres string
             suggested_description = self._suggest_description_from_domain(urlparse(url).netloc)
             
             critical_fixes.append({
@@ -155,7 +186,8 @@ class AutoFixGenerator:
         
         # Hiányzó H1
         if meta_data.get("h1_count", 0) == 0:
-            suggested_h1 = meta_data.get("title", "Főcím hiányzik").replace("<title>", "").replace("</title>", "")
+            # JAVÍTÁS: Biztonságos title használat H1 javaslatra
+            suggested_h1 = title if title else self._suggest_title_from_domain(urlparse(url).netloc)
             
             critical_fixes.append({
                 "issue": "Hiányzó H1 elem",
@@ -182,83 +214,95 @@ class AutoFixGenerator:
         return critical_fixes
     
     def _generate_seo_improvements(self, analysis: Dict, url: str) -> List[Dict]:
-        """SEO fejlesztések"""
+        """SEO fejlesztések - JAVÍTVA"""
         seo_fixes = []
         
         meta_data = analysis.get("meta_and_headings", {})
         
-        # Title optimalizálás
-        title = meta_data.get("title", "")
-        title_length = len(title)
+        # JAVÍTÁS: Biztonságos title kezelés
+        title = meta_data.get("title")
+        if title:  # Csak ha van title
+            title_length = len(title)
+            
+            if not meta_data.get("title_optimal"):
+                if title_length < 30:
+                    seo_fixes.append({
+                        "issue": "Túl rövid title",
+                        "current_length": title_length,
+                        "optimal_range": "30-60 karakter",
+                        "suggestion": f"Bővítsd ki: '{title}' → '{title} - {self._suggest_title_extension(url)}'",
+                        "fix_code": f'<title>{title} - {self._suggest_title_extension(url)}</title>',
+                        "impact": "Jobb SEO teljesítmény és AI megjelenés"
+                    })
+                elif title_length > 60:
+                    shortened = title[:57] + "..."
+                    seo_fixes.append({
+                        "issue": "Túl hosszú title",
+                        "current_length": title_length,
+                        "optimal_range": "30-60 karakter",
+                        "suggestion": f"Rövidítsd le: '{title}' → '{shortened}'",
+                        "fix_code": f'<title>{shortened}</title>',
+                        "impact": "Teljes megjelenés a keresőkben"
+                    })
         
-        if title and not meta_data.get("title_optimal"):
-            if title_length < 30:
-                seo_fixes.append({
-                    "issue": "Túl rövid title",
-                    "current_length": title_length,
-                    "optimal_range": "30-60 karakter",
-                    "suggestion": f"Bővítsd ki: '{title}' → '{title} - {self._suggest_title_extension(url)}'",
-                    "fix_code": f'<title>{title} - {self._suggest_title_extension(url)}</title>',
-                    "impact": "Jobb SEO teljesítmény és AI megjelenés"
-                })
-            elif title_length > 60:
-                shortened = title[:57] + "..."
-                seo_fixes.append({
-                    "issue": "Túl hosszú title",
-                    "current_length": title_length,
-                    "optimal_range": "30-60 karakter",
-                    "suggestion": f"Rövidítsd le: '{title}' → '{shortened}'",
-                    "fix_code": f'<title>{shortened}</title>',
-                    "impact": "Teljes megjelenés a keresőkben"
-                })
-        
-        # Description optimalizálás
-        description = meta_data.get("description", "")
-        desc_length = len(description)
-        
-        if description and not meta_data.get("description_optimal"):
-            if desc_length < 120:
-                extended_desc = description + " " + self._suggest_description_extension(url)
-                seo_fixes.append({
-                    "issue": "Túl rövid meta description",
-                    "current_length": desc_length,
-                    "optimal_range": "120-160 karakter",
-                    "suggestion": f"Bővítsd ki részletekkel",
-                    "fix_code": f'<meta name="description" content="{extended_desc}">',
-                    "impact": "Több információ a keresőkben"
-                })
-            elif desc_length > 160:
-                shortened_desc = description[:157] + "..."
-                seo_fixes.append({
-                    "issue": "Túl hosszú meta description",
-                    "current_length": desc_length,
-                    "optimal_range": "120-160 karakter",
-                    "suggestion": "Rövidítsd le a legfontosabb információkra",
-                    "fix_code": f'<meta name="description" content="{shortened_desc}">',
-                    "impact": "Teljes megjelenés, nincs levágás"
-                })
+        # JAVÍTÁS: Biztonságos description kezelés
+        description = meta_data.get("description")
+        if description:  # Csak ha van description
+            desc_length = len(description)
+            
+            if not meta_data.get("description_optimal"):
+                if desc_length < 120:
+                    extended_desc = description + " " + self._suggest_description_extension(url)
+                    seo_fixes.append({
+                        "issue": "Túl rövid meta description",
+                        "current_length": desc_length,
+                        "optimal_range": "120-160 karakter",
+                        "suggestion": f"Bővítsd ki részletekkel",
+                        "fix_code": f'<meta name="description" content="{extended_desc}">',
+                        "impact": "Több információ a keresőkben"
+                    })
+                elif desc_length > 160:
+                    shortened_desc = description[:157] + "..."
+                    seo_fixes.append({
+                        "issue": "Túl hosszú meta description",
+                        "current_length": desc_length,
+                        "optimal_range": "120-160 karakter",
+                        "suggestion": "Rövidítsd le a legfontosabb információkra",
+                        "fix_code": f'<meta name="description" content="{shortened_desc}">',
+                        "impact": "Teljes megjelenés, nincs levágás"
+                    })
         
         # Open Graph
         if not meta_data.get("has_og_tags"):
             domain = urlparse(url).netloc
+            # JAVÍTÁS: Biztonságos default értékek
+            og_title = title if title else domain
+            og_description = description if description else f"{domain} weboldal"
+            
             seo_fixes.append({
                 "issue": "Hiányzó Open Graph meta tagek",
                 "impact": "Gyenge social media megjelenés",
-                "fix_code": f'''<meta property="og:title" content="{title or domain}">
-<meta property="og:description" content="{description or 'Leírás hiányzik'}">
-<meta property="og:url" content="{url}">
-<meta property="og:type" content="website">''',
+                "fix_code": f'''<meta property="og:title" content="{og_title}">
+    <meta property="og:description" content="{og_description}">
+    <meta property="og:url" content="{url}">
+    <meta property="og:type" content="website">''',
                 "implementation": "head szekcióba illeszd be"
             })
         
         return seo_fixes
     
     def _generate_schema_fixes(self, analysis: Dict, url: str) -> List[Dict]:
-        """Schema.org javítások"""
+        """Schema.org javítások - JAVÍTVA"""
         schema_fixes = []
         
         schema_data = analysis.get("schema", {})
-        schema_count = sum(schema_data.get("count", {}).values())
+        
+        # JAVÍTÁS: Biztonságos schema count kezelés
+        schema_count = 0
+        if schema_data and "count" in schema_data:
+            count_dict = schema_data.get("count", {})
+            if isinstance(count_dict, dict):
+                schema_count = sum(count_dict.values())
         
         if schema_count == 0:
             # Alapvető Organization schema
@@ -282,27 +326,34 @@ class AutoFixGenerator:
             })
         
         # FAQ schema javaslat ha sok kérdés van a tartalomban
-        if analysis.get("ai_metrics", {}).get("qa_format", {}).get("question_patterns_count", 0) > 3:
-            schema_fixes.append({
-                "type": "FAQ Schema",
-                "priority": "medium",
-                "benefit": "Kérdés-válasz megjelenés a keresőkben",
-                "code": self.schema_templates["faq"].format(
-                    question="Gyakori kérdés?",
-                    answer="Részletes válasz a kérdésre."
-                ),
-                "implementation": "Minden FAQ blokkhoz külön schema",
-                "note": "Automatikusan generálható a meglévő Q&A tartalmakból"
-            })
+        ai_metrics = analysis.get("ai_metrics", {})
+        if ai_metrics and isinstance(ai_metrics, dict):
+            qa_format = ai_metrics.get("qa_format", {})
+            if isinstance(qa_format, dict) and qa_format.get("question_patterns_count", 0) > 3:
+                schema_fixes.append({
+                    "type": "FAQ Schema",
+                    "priority": "medium",
+                    "benefit": "Kérdés-válasz megjelenés a keresőkben",
+                    "code": self.schema_templates["faq"].format(
+                        question="Gyakori kérdés?",
+                        answer="Részletes válasz a kérdésre."
+                    ),
+                    "implementation": "Minden FAQ blokkhoz külön schema",
+                    "note": "Automatikusan generálható a meglévő Q&A tartalmakból"
+                })
         
         # Article schema blog posztokhoz
         if "blog" in url.lower() or "post" in url.lower() or "cikk" in url.lower():
+            # JAVÍTÁS: Biztonságos title kezelés
+            meta_data = analysis.get("meta_and_headings", {})
+            article_title = meta_data.get("title") if meta_data.get("title") else "Cikk címe"
+            
             schema_fixes.append({
                 "type": "Article Schema",
                 "priority": "medium",
                 "benefit": "Cikk részletek megjelenése AI rendszerekben",
                 "code": self.schema_templates["article"].format(
-                    headline=analysis.get("meta_and_headings", {}).get("title", "Cikk címe"),
+                    headline=article_title,
                     author_name="Szerző neve",
                     publish_date="2024-01-01",
                     modified_date="2024-01-01",
@@ -315,59 +366,68 @@ class AutoFixGenerator:
         return schema_fixes
     
     def _generate_content_fixes(self, analysis: Dict) -> List[Dict]:
-        """Tartalom optimalizálás"""
+        """Tartalom optimalizálás - JAVÍTVA"""
         content_fixes = []
         
         # AI specifikus metrikák alapján
         ai_metrics = analysis.get("ai_metrics", {})
         
-        # Step-by-step tartalom hiánya
-        if ai_metrics.get("content_structure", {}).get("lists", {}).get("ordered", 0) < 2:
-            content_fixes.append({
-                "issue": "Hiányzó step-by-step tartalom",
-                "benefit": "AI rendszerek könnyebben feldolgozzák",
-                "suggestion": "Adj hozzá számozott lépéseket",
-                "example_code": '''
-<ol>
-  <li>Első lépés: Részletes leírás</li>
-  <li>Második lépés: További információk</li>
-  <li>Harmadik lépés: Befejezés</li>
-</ol>''',
-                "ai_platforms": ["ChatGPT", "Claude", "Gemini"]
-            })
-        
-        # FAQ szekció hiánya
-        qa_score = ai_metrics.get("qa_format", {}).get("qa_score", 0)
-        if qa_score < 30:
-            content_fixes.append({
-                "issue": "Gyenge Q&A struktúra",
-                "benefit": "Jobb megjelenés AI válaszokban",
-                "suggestion": "Adj hozzá FAQ szekciót",
-                "example_code": '''
-<section id="faq">
-  <h2>Gyakori kérdések</h2>
-  <div class="faq-item">
-    <h3>Kérdés: Hogyan működik?</h3>
-    <p>Válasz: Részletes magyarázat...</p>
-  </div>
-</section>''',
-                "ai_platforms": ["ChatGPT", "Gemini", "Bing Chat"]
-            })
+        # JAVÍTÁS: Biztonságos dictionary elérés
+        if ai_metrics and isinstance(ai_metrics, dict):
+            # Step-by-step tartalom hiánya
+            content_structure = ai_metrics.get("content_structure", {})
+            if isinstance(content_structure, dict):
+                lists = content_structure.get("lists", {})
+                if isinstance(lists, dict) and lists.get("ordered", 0) < 2:
+                    content_fixes.append({
+                        "issue": "Hiányzó step-by-step tartalom",
+                        "benefit": "AI rendszerek könnyebben feldolgozzák",
+                        "suggestion": "Adj hozzá számozott lépéseket",
+                        "example_code": '''
+    <ol>
+    <li>Első lépés: Részletes leírás</li>
+    <li>Második lépés: További információk</li>
+    <li>Harmadik lépés: Befejezés</li>
+    </ol>''',
+                        "ai_platforms": ["ChatGPT", "Claude", "Gemini"]
+                    })
+            
+            # FAQ szekció hiánya
+            qa_format = ai_metrics.get("qa_format", {})
+            if isinstance(qa_format, dict):
+                qa_score = qa_format.get("qa_score", 0)
+                if qa_score < 30:
+                    content_fixes.append({
+                        "issue": "Gyenge Q&A struktúra",
+                        "benefit": "Jobb megjelenés AI válaszokban",
+                        "suggestion": "Adj hozzá FAQ szekciót",
+                        "example_code": '''
+    <section id="faq">
+    <h2>Gyakori kérdések</h2>
+    <div class="faq-item">
+        <h3>Kérdés: Hogyan működik?</h3>
+        <p>Válasz: Részletes magyarázat...</p>
+    </div>
+    </section>''',
+                        "ai_platforms": ["ChatGPT", "Gemini", "Bing Chat"]
+                    })
         
         # Tartalom mélység
         content_quality = analysis.get("content_quality", {})
-        if content_quality.get("content_depth", {}).get("depth_score", 0) < 50:
-            content_fixes.append({
-                "issue": "Felületes tartalom",
-                "benefit": "Nagyobb tekintély AI rendszerekben",
-                "suggestion": "Bővítsd több példával és részlettel",
-                "improvements": [
-                    "Adj hozzá konkrét példákat",
-                    "Statisztikák és adatok használata",
-                    "Részletes magyarázatok",
-                    "Szakmai terminológia"
-                ]
-            })
+        if content_quality and isinstance(content_quality, dict):
+            content_depth = content_quality.get("content_depth", {})
+            if isinstance(content_depth, dict) and content_depth.get("depth_score", 0) < 50:
+                content_fixes.append({
+                    "issue": "Felületes tartalom",
+                    "benefit": "Nagyobb tekintély AI rendszerekben",
+                    "suggestion": "Bővítsd több példával és részlettel",
+                    "improvements": [
+                        "Adj hozzá konkrét példákat",
+                        "Statisztikák és adatok használata",
+                        "Részletes magyarázatok",
+                        "Szakmai terminológia"
+                    ]
+                })
         
         return content_fixes
     
