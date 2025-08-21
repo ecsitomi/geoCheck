@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 def generate_html_report(json_file: str = "ai_readiness_full_report.json", 
                         output_file: str = "report.html") -> None:
     """
-    HTML jelentés generálása a GEO elemzés eredményeiből
+    HTML jelentés generálása a GEO elemzés eredményeiből - TELJES VERZIÓ
     """
     try:
         with open(json_file, "r", encoding="utf-8") as f:
@@ -154,6 +154,38 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             font-size: 0.9rem;
         }}
         
+        .platform-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }}
+        
+        .platform-card {{
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }}
+        
+        .platform-name {{
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }}
+        
+        .platform-score {{
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+        }}
+        
+        .platform-level {{
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }}
+        
         .chart-container {{
             width: 100%;
             max-width: 500px;
@@ -165,6 +197,37 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
             gap: 30px;
             margin: 30px 0;
+        }}
+        
+        .tabs {{
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            border-bottom: 2px solid #e0e0e0;
+        }}
+        
+        .tab {{
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+        }}
+        
+        .tab.active {{
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }}
+        
+        .tab-content {{
+            display: none;
+            padding: 20px 0;
+        }}
+        
+        .tab-content.active {{
+            display: block;
         }}
         
         table {{
@@ -220,12 +283,98 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             color: #856404;
         }}
         
+        .alert-success {{
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }}
+        
+        .progress-bar {{
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }}
+        
+        .progress-fill {{
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }}
+        
+        .ai-metrics-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }}
+        
+        .ai-metric {{
+            background: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }}
+        
+        .ai-metric-label {{
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 5px;
+        }}
+        
+        .ai-metric-value {{
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }}
+        
+        .fix-item {{
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }}
+        
+        .fix-title {{
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }}
+        
+        .fix-code {{
+            background: #282c34;
+            color: #abb2bf;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 10px 0;
+            overflow-x: auto;
+        }}
+        
+        details {{
+            margin: 15px 0;
+        }}
+        
+        summary {{
+            cursor: pointer;
+            font-weight: 600;
+            color: #667eea;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }}
+        
         @media (max-width: 768px) {{
             h1 {{ font-size: 1.8rem; }}
             .site-url {{ font-size: 1.2rem; }}
             .charts-row {{ grid-template-columns: 1fr; }}
             .metrics-grid {{ grid-template-columns: 1fr; }}
-            .alert-box {{ padding: 10px; font-size: 0.9rem; }}
+            .platform-grid {{ grid-template-columns: repeat(2, 1fr); }}
         }}
     </style>
 </head>
@@ -265,29 +414,17 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         # Score szín meghatározása
         score_class = "score-excellent" if score >= 70 else "score-good" if score >= 50 else "score-poor"
         
-        # Meta adatok kinyerése - JAVÍTVA
+        # Adatok kinyerése
         meta_data = site.get("meta_and_headings", {})
-        title = meta_data.get("title") or "N/A"
-        description = meta_data.get("description") or "N/A"
-        headings = meta_data.get("headings", {})
-        
-        # Schema adatok
         schema_data = site.get("schema", {})
-        schema_count = schema_data.get("count", {})
-        
-        # Mobile adatok
         mobile = site.get("mobile_friendly", {})
-        
-        # PageSpeed adatok
         psi = site.get("pagespeed_insights", {})
-        
-        # Title és description hosszak biztonságos számítása - JAVÍTVA
-        title_len = len(title) if title and title != "N/A" else 0
-        desc_len = len(description) if description and description != "N/A" else 0
-        
-        # Javított meta megjelenítés
-        title_status = "✅" if meta_data.get("title_optimal") else ("⚠️" if title_len > 0 else "❌")
-        desc_status = "✅" if meta_data.get("description_optimal") else ("⚠️" if desc_len > 0 else "❌ Hiányzik")
+        ai_metrics = site.get("ai_metrics", {})
+        ai_summary = site.get("ai_metrics_summary", {})
+        content_quality = site.get("content_quality", {})
+        platform_analysis = site.get("platform_analysis", {})
+        platform_suggestions = site.get("platform_suggestions", {})
+        auto_fixes = site.get("auto_fixes", {})
         
         html_content += f"""
         <div class="site-card">
@@ -296,205 +433,329 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 <div class="score-badge {score_class}">{score}</div>
             </div>
             
-            <div class="metrics-grid">
-                <div class="metric-item">
-                    <div class="metric-title">📄 Meta adatok</div>
-                    <div class="metric-value">
-                        Title: {title_status} {title_len} karakter<br>
-                        Description: {desc_status} {desc_len} karakter
+            <!-- Tab navigáció -->
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('{uid}', 'overview')">📊 Áttekintés</button>
+                <button class="tab" onclick="showTab('{uid}', 'ai-metrics')">🤖 AI Metrikák</button>
+                <button class="tab" onclick="showTab('{uid}', 'content')">📝 Tartalom</button>
+                <button class="tab" onclick="showTab('{uid}', 'platforms')">🎯 Platformok</button>
+                <button class="tab" onclick="showTab('{uid}', 'fixes')">🔧 Javítások</button>
+            </div>
+            
+            <!-- Áttekintés tab -->
+            <div id="{uid}-overview" class="tab-content active">
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-title">📄 Meta adatok</div>
+                        <div class="metric-value">
+"""
+        # Meta adatok megjelenítése
+        title = meta_data.get("title")
+        description = meta_data.get("description")
+        title_len = len(title) if title else 0
+        desc_len = len(description) if description else 0
+        title_status = "✅" if meta_data.get("title_optimal") else ("⚠️" if title_len > 0 else "❌")
+        desc_status = "✅" if meta_data.get("description_optimal") else ("⚠️" if desc_len > 0 else "❌")
+        
+        html_content += f"""
+                            Title: {title_status} {title_len} karakter<br>
+                            Description: {desc_status} {desc_len} karakter<br>
+                            OG Tags: {"✅" if meta_data.get('has_og_tags') else "❌"}<br>
+                            Twitter Card: {"✅" if meta_data.get('has_twitter_card') else "❌"}
+                        </div>
+                    </div>
+                    
+                    <div class="metric-item">
+                        <div class="metric-title">🤖 Crawlability</div>
+                        <div class="metric-value">
+                            Robots.txt: {"✅ Engedélyezett" if site.get('robots_txt', {}).get('can_fetch') else "❌ Tiltott"}<br>
+                            Sitemap: {"✅ Van" if site.get('sitemap', {}).get('exists') else "❌ Nincs"}<br>
+                            HTML méret: {site.get('html_size_kb', 0):.1f} KB
+                        </div>
+                    </div>
+                    
+                    <div class="metric-item">
+                        <div class="metric-title">📱 Mobile-friendly</div>
+                        <div class="metric-value">
+                            Viewport: {"✅" if mobile.get('has_viewport') else "❌"}<br>
+                            Responsive képek: {"✅" if mobile.get('responsive_images') else "❌"}
+                        </div>
+                    </div>
+                    
+                    <div class="metric-item">
+                        <div class="metric-title">🏗️ Struktúra</div>
+                        <div class="metric-value">
+                            H1 elemek: {meta_data.get('h1_count', 0)}<br>
+                            Heading hierarchia: {"✅" if meta_data.get('heading_hierarchy_valid') else "⚠️"}<br>
+                            Schema típusok: {sum(schema_data.get('count', {}).values())}
+                        </div>
                     </div>
                 </div>
                 
-                <div class="metric-item">
-                    <div class="metric-title">🤖 Robotok & Sitemap</div>
-                    <div class="metric-value">
-                        Robots.txt: {"✅ Engedélyezett" if site.get('robots_txt', {}).get('can_fetch') else "❌ Tiltott"}<br>
-                        Sitemap: {"✅ Van" if site.get('sitemap', {}).get('exists') else "❌ Nincs"}
+                <div class="charts-row">
+                    <div class="chart-container">
+                        <canvas id="headingChart_{uid}"></canvas>
                     </div>
-                </div>
-                
-                <div class="metric-item">
-                    <div class="metric-title">📱 Mobile-friendly</div>
-                    <div class="metric-value">
-                        Viewport: {"✅" if mobile.get('has_viewport') else "❌"}<br>
-                        Responsive képek: {"✅" if mobile.get('responsive_images') else "❌"}
-                    </div>
-                </div>
-                
-                <div class="metric-item">
-                    <div class="metric-title">🏗️ Struktúra</div>
-                    <div class="metric-value">
-                        H1 elemek: {meta_data.get('h1_count', 0)}<br>
-                        Heading hierarchia: {"✅ Helyes" if meta_data.get('heading_hierarchy_valid') else "⚠️ Javítandó"}
+                    <div class="chart-container">
+                        <canvas id="schemaChart_{uid}"></canvas>
                     </div>
                 </div>
             </div>
             
-            <div class="charts-row">
-                <div class="chart-container">
-                    <canvas id="headingChart_{uid}"></canvas>
-                </div>
-                <div class="chart-container">
-                    <canvas id="schemaChart_{uid}"></canvas>
-                </div>
-            </div>
+            <!-- AI Metrikák tab -->
+            <div id="{uid}-ai-metrics" class="tab-content">
 """
         
-        # JAVÍTVA: Kritikus problémák figyelmeztetése
-        critical_issues = []
-        if meta_data.get('h1_count', 0) > 1:
-            critical_issues.append(f"🚨 Túl sok H1 elem ({meta_data.get('h1_count')} db)")
-        if meta_data.get('h1_count', 0) == 0:
-            critical_issues.append("🚨 Hiányzik a H1 elem")
-        if desc_len == 0:
-            critical_issues.append("🚨 Meta description hiányzik")
-        if title_len == 0:
-            critical_issues.append("🚨 Title tag hiányzik")
-        if any(count > 50 for count in headings.values()):
-            excessive_heading = max(headings.items(), key=lambda x: x[1])
-            critical_issues.append(f"🚨 Túl sok {excessive_heading[0].upper()} elem ({excessive_heading[1]} db)")
-        
-        if critical_issues:
-            html_content += """
-            <div class="alert-box alert-critical">
-                <div style="font-weight: 600; margin-bottom: 10px;">⚠️ Kritikus problémák</div>
+        # AI metrikák megjelenítése
+        if ai_summary and not ai_summary.get('error'):
+            html_content += f"""
+                <h3>AI Readiness Összefoglaló</h3>
+                <div class="ai-metrics-grid">
+                    <div class="ai-metric">
+                        <div class="ai-metric-label">Összesített</div>
+                        <div class="ai-metric-value">{ai_summary.get('weighted_average', 0):.1f}</div>
+                    </div>
+                    <div class="ai-metric">
+                        <div class="ai-metric-label">Szint</div>
+                        <div class="ai-metric-value">{ai_summary.get('level', 'N/A')}</div>
+                    </div>
+                </div>
+                
+                <h4>Részletes pontszámok:</h4>
+                <div class="ai-metrics-grid">
 """
-            for issue in critical_issues[:3]:  # Max 3 kritikus probléma
+            scores = ai_summary.get('individual_scores', {})
+            for key, value in scores.items():
                 html_content += f"""
-                <div style="margin: 5px 0;">• {issue}</div>
+                    <div class="ai-metric">
+                        <div class="ai-metric-label">{key.replace('_', ' ').title()}</div>
+                        <div class="ai-metric-value">{value}</div>
+                    </div>
 """
             html_content += "</div>"
-        
-        # JAVÍTVA: Fejlesztési javaslatok alacsony score esetén
-        if score < 70:
-            improvements = []
-            if not meta_data.get('title_optimal'):
-                if title_len == 0:
-                    improvements.append("📝 Adj hozzá title tag-et")
-                elif title_len < 30:
-                    improvements.append("📝 Hosszabbítsd meg a title-t (30-60 karakter)")
-                elif title_len > 60:
-                    improvements.append("📝 Rövidítsd le a title-t (30-60 karakter)")
             
-            if not meta_data.get('description_optimal'):
-                if desc_len == 0:
-                    improvements.append("📝 Adj hozzá meta description-t")
-                elif desc_len < 120:
-                    improvements.append("📝 Hosszabbítsd meg a description-t (120-160 karakter)")
-                elif desc_len > 160:
-                    improvements.append("📝 Rövidítsd le a description-t (120-160 karakter)")
-            
-            if sum(schema_data.get('count', {}).values()) == 0:
-                improvements.append("🏗️ Adj hozzá Schema.org markup-ot")
-            
-            if not mobile.get('responsive_images'):
-                improvements.append("📱 Használj responsive képeket")
-            
-            if meta_data.get('h1_count', 0) != 1:
-                improvements.append("🏗️ Pontosan 1 H1 elem használata javasolt")
-            
-            if improvements:
-                html_content += """
-            <div class="alert-box alert-info">
-                <div style="font-weight: 600; margin-bottom: 10px;">💡 Fejlesztési javaslatok</div>
-"""
-                for improvement in improvements[:4]:  # Max 4 javaslat
+            # AI specifikus metrikák
+            if ai_metrics and not ai_metrics.get('error'):
+                # Q&A formátum
+                qa_format = ai_metrics.get('qa_format', {})
+                if qa_format:
                     html_content += f"""
-                <div style="margin: 5px 0;">• {improvement}</div>
+                <h4>Q&A Formátum:</h4>
+                <ul>
+                    <li>FAQ Schema: {"✅" if qa_format.get('has_faq_schema') else "❌"}</li>
+                    <li>Kérdések száma: {qa_format.get('question_patterns_count', 0)}</li>
+                    <li>Q&A Score: {qa_format.get('qa_score', 0)}/100</li>
+                </ul>
 """
-                html_content += "</div>"
-        
-        html_content += "</div>"  # site-card bezárása
-        
-        # PageSpeed Insights táblázat
-        if psi:
-            html_content += """
-            <table>
-                <thead>
-                    <tr>
-                        <th>PageSpeed Metrika</th>
-                        <th>Mobile</th>
-                        <th>Desktop</th>
-                    </tr>
-                </thead>
-                <tbody>
-"""
-            mobile_psi = psi.get('mobile', {})
-            desktop_psi = psi.get('desktop', {})
-            
-            metrics = ['performance', 'accessibility', 'best-practices', 'seo']
-            metric_names = {
-                'performance': '⚡ Performance',
-                'accessibility': '♿ Accessibility', 
-                'best-practices': '✅ Best Practices',
-                'seo': '🔍 SEO'
-            }
-            
-            for metric in metrics:
-                mobile_score = mobile_psi.get(metric, 'N/A') if mobile_psi else 'N/A'
-                desktop_score = desktop_psi.get(metric, 'N/A') if desktop_psi else 'N/A'
                 
-                # JAVÍTVA: Csak számértékekhez adjunk színt
-                mobile_color = get_score_color(mobile_score) if isinstance(mobile_score, (int, float)) else '#666'
-                desktop_color = get_score_color(desktop_score) if isinstance(desktop_score, (int, float)) else '#666'
+                # Tartalom struktúra
+                content_structure = ai_metrics.get('content_structure', {})
+                if content_structure:
+                    lists = content_structure.get('lists', {})
+                    html_content += f"""
+                <h4>Tartalom struktúra:</h4>
+                <ul>
+                    <li>Rendezett listák: {lists.get('ordered', 0)}</li>
+                    <li>Nem rendezett listák: {lists.get('unordered', 0)}</li>
+                    <li>Táblázatok: {content_structure.get('tables', {}).get('count', 0)}</li>
+                    <li>Struktúra score: {content_structure.get('structure_score', 0)}/100</li>
+                </ul>
+"""
+        else:
+            html_content += "<p>AI metrikák nem elérhetők</p>"
+            
+        html_content += "</div>"
+        
+        # Tartalom tab
+        html_content += f"""
+            <!-- Tartalom tab -->
+            <div id="{uid}-content" class="tab-content">
+"""
+        
+        if content_quality and not content_quality.get('error'):
+            readability = content_quality.get('readability', {})
+            keyword_analysis = content_quality.get('keyword_analysis', {})
+            content_depth = content_quality.get('content_depth', {})
+            
+            html_content += f"""
+                <h3>Tartalom minőség</h3>
+                <div class="metric-item">
+                    <div class="metric-title">📖 Olvashatóság</div>
+                    <div class="metric-value">
+                        Szószám: {readability.get('word_count', 0)}<br>
+                        Mondatok: {readability.get('sentence_count', 0)}<br>
+                        Flesch score: {readability.get('flesch_score', 0):.1f}<br>
+                        Szint: {readability.get('readability_level', 'N/A')}
+                    </div>
+                </div>
                 
-                html_content += f"""
-                    <tr>
-                        <td>{metric_names.get(metric, metric)}</td>
-                        <td style="color: {mobile_color}; font-weight: 600;">{mobile_score}</td>
-                        <td style="color: {desktop_color}; font-weight: 600;">{desktop_score}</td>
-                    </tr>
+                <div class="metric-item">
+                    <div class="metric-title">🔑 Kulcsszavak</div>
+                    <div class="metric-value">
+                        Összes szó: {keyword_analysis.get('total_words', 0)}<br>
+                        Egyedi szavak: {keyword_analysis.get('unique_words', 0)}<br>
+                        Szókincs gazdagság: {keyword_analysis.get('vocabulary_richness', 0):.3f}
+                    </div>
+                </div>
 """
             
-            html_content += """
-                </tbody>
-            </table>
+            # Top kulcsszavak
+            top_keywords = keyword_analysis.get('top_keywords', [])
+            if top_keywords:
+                html_content += "<h4>Top kulcsszavak:</h4><ul>"
+                for word, count in top_keywords[:5]:
+                    html_content += f"<li>{word}: {count}x</li>"
+                html_content += "</ul>"
+            
+            # Tartalom mélység
+            html_content += f"""
+                <div class="metric-item">
+                    <div class="metric-title">📊 Tartalom mélység</div>
+                    <div class="metric-value">
+                        Kategória: {content_depth.get('content_length_category', 'N/A')}<br>
+                        Témák száma: {content_depth.get('topic_coverage', 0)}<br>
+                        Példák: {content_depth.get('examples_count', 0)}<br>
+                        Statisztikák: {content_depth.get('statistics_count', 0)}<br>
+                        Külső hivatkozások: {content_depth.get('external_references', 0)}<br>
+                        Mélység score: {content_depth.get('depth_score', 0)}/100
+                    </div>
+                </div>
+"""
+        else:
+            html_content += "<p>Tartalom elemzés nem elérhető</p>"
+            
+        html_content += "</div>"
+        
+        # Platformok tab
+        html_content += f"""
+            <!-- Platformok tab -->
+            <div id="{uid}-platforms" class="tab-content">
 """
         
-        # Schema.org részletek - JAVÍTVA: szűrjük a None/Unknown típusokat
-        valid_schemas = [
-            detail for detail in schema_data.get("details", [])
-            if detail.get('type') and detail.get('type') not in ['None', 'Unknown', '']
-        ]
-        
-        if valid_schemas:
-            html_content += """
-            <details style="margin-top: 20px;">
-                <summary style="cursor: pointer; font-weight: 600; color: #667eea;">📋 Schema.org részletek</summary>
-                <div style="margin-top: 10px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-"""
-            for detail in valid_schemas[:5]:  # Max 5 schema
-                schema_type = detail.get('type', 'Unknown')
+        if platform_analysis and not platform_analysis.get('error'):
+            summary = platform_analysis.get('summary', {})
+            if summary and not summary.get('error'):
                 html_content += f"""
-                    <div style="margin: 5px 0;">
-                        • <strong>{schema_type}</strong>
-                        {' 🖼️' if detail.get('has_image') else ''}
-                        {' ⭐' if detail.get('has_rating') else ''}
+                <h3>Platform kompatibilitás</h3>
+                <div class="alert-box alert-info">
+                    <strong>Átlagos kompatibilitás:</strong> {summary.get('average_compatibility', 0):.1f}/100<br>
+                    <strong>Legjobb platform:</strong> {summary.get('best_platform', {}).get('name', 'N/A')} 
+                    ({summary.get('best_platform', {}).get('score', 0)}/100)<br>
+                    <strong>Összesített szint:</strong> {summary.get('overall_level', 'N/A')}
+                </div>
+                
+                <div class="platform-grid">
+"""
+                
+                # Platform kártyák
+                for platform in ['chatgpt', 'claude', 'gemini', 'bing_chat']:
+                    if platform in platform_analysis:
+                        p_data = platform_analysis[platform]
+                        if not p_data.get('error'):
+                            p_score = p_data.get('compatibility_score', 0)
+                            p_level = p_data.get('optimization_level', 'N/A')
+                            
+                            html_content += f"""
+                    <div class="platform-card">
+                        <div class="platform-name">{platform.replace('_', ' ').title()}</div>
+                        <div class="platform-score">{p_score}</div>
+                        <div class="platform-level">{p_level}</div>
                     </div>
 """
-            html_content += """
-                </div>
-            </details>
-"""
-        elif schema_data.get("count") and sum(schema_data.get("count", {}).values()) > 0:
-            html_content += """
-            <div class="alert-box alert-warning">
-                <div style="font-weight: 600;">📋 Schema.org részletek</div>
-                <div style="margin-top: 5px;">Schema markup található, de típus információ nem elérhető</div>
-            </div>
+                
+                html_content += "</div>"
+                
+                # Platform specifikus javaslatok
+                if platform_suggestions and not platform_suggestions.get('error'):
+                    common = platform_suggestions.get('common_optimizations', [])
+                    if common:
+                        html_content += "<h4>Közös optimalizálási lehetőségek:</h4><ul>"
+                        for suggestion in common[:3]:
+                            if isinstance(suggestion, dict):
+                                html_content += f"<li><strong>{suggestion.get('suggestion', 'N/A')}</strong> - {suggestion.get('description', '')}</li>"
+                        html_content += "</ul>"
+        else:
+            html_content += "<p>Platform elemzés nem elérhető</p>"
+            
+        html_content += "</div>"
+        
+        # Javítások tab
+        html_content += f"""
+            <!-- Javítások tab -->
+            <div id="{uid}-fixes" class="tab-content">
 """
         
-        html_content += "</div>"
+        if auto_fixes and not auto_fixes.get('error'):
+            # Kritikus javítások
+            critical = auto_fixes.get('critical_fixes', [])
+            if critical:
+                html_content += "<h3>🚨 Kritikus javítások</h3>"
+                for fix in critical[:3]:
+                    html_content += f"""
+                <div class="fix-item">
+                    <div class="fix-title">{fix.get('issue', 'N/A')}</div>
+                    <div>Hatás: {fix.get('impact', 'N/A')}</div>
+                    <div class="fix-code">{fix.get('fix_code', '')}</div>
+                    <div>Időigény: {fix.get('estimated_time', 'N/A')}</div>
+                </div>
+"""
+            
+            # SEO javítások
+            seo = auto_fixes.get('seo_improvements', [])
+            if seo:
+                html_content += "<h3>📈 SEO fejlesztések</h3>"
+                for improvement in seo[:3]:
+                    if 'issue' in improvement:
+                        html_content += f"""
+                <div class="fix-item">
+                    <div class="fix-title">{improvement.get('issue', 'N/A')}</div>
+                    <div>{improvement.get('suggestion', '')}</div>
+                </div>
+"""
+            
+            # Schema javaslatok
+            schema_fixes = auto_fixes.get('schema_suggestions', [])
+            if schema_fixes:
+                html_content += """
+                <details>
+                    <summary>🏗️ Schema.org javaslatok</summary>
+                    <div style="padding: 10px;">
+"""
+                for schema_fix in schema_fixes[:2]:
+                    html_content += f"""
+                    <div class="fix-item">
+                        <div class="fix-title">{schema_fix.get('type', 'N/A')}</div>
+                        <div>Előny: {schema_fix.get('benefit', 'N/A')}</div>
+                    </div>
+"""
+                html_content += "</div></details>"
+        else:
+            html_content += "<p>Automatikus javítások nem elérhetők</p>"
+            
+        html_content += "</div></div>"  # tab-content és site-card bezárása
 
     # Footer
     html_content += """
         <div class="footer">
             <p>© 2024 GEO Analyzer | AI Readiness Report</p>
-            <p style="margin-top: 10px; opacity: 0.8;">Készült Chart.js vizualizációval</p>
+            <p style="margin-top: 10px; opacity: 0.8;">Teljes elemzés minden AI platform számára</p>
         </div>
     </div>
     
     <script>
+        function showTab(siteId, tabName) {
+            // Hide all tabs for this site
+            const tabs = document.querySelectorAll(`#${siteId}-overview, #${siteId}-ai-metrics, #${siteId}-content, #${siteId}-platforms, #${siteId}-fixes`);
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(`${siteId}-${tabName}`).classList.add('active');
+            
+            // Update tab buttons
+            const tabButtons = event.target.parentElement.querySelectorAll('.tab');
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
 """
 
     # JavaScript chart generálás
@@ -508,14 +769,10 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         schema_data = site.get("schema", {})
         schema_count = schema_data.get("count", {})
         
-        # Headings chart - JAVÍTVA: figyelmeztetés túl sok heading esetén
+        # Headings chart
         if headings:
             heading_labels = list(headings.keys())
             heading_values = list(headings.values())
-            
-            # Ellenőrizzük, hogy van-e túl sok heading
-            excessive_headings = any(count > 50 for count in heading_values)
-            chart_warning = "⚠️ Túl sok heading elem!" if excessive_headings else ""
             
             html_content += f"""
     // Heading Chart - {uid}
@@ -544,7 +801,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             plugins: {{
                 title: {{
                     display: true,
-                    text: 'Heading Struktúra {chart_warning}'
+                    text: 'Heading Struktúra'
                 }},
                 legend: {{
                     display: false
@@ -562,9 +819,8 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
     }});
 """
         
-        # Schema chart - JAVÍTVA: csak akkor mutassunk, ha van értelmes adat
+        # Schema chart
         if schema_count and any(v > 0 for v in schema_count.values()):
-            # Csak a nem-nulla értékeket mutatjuk
             filtered_schema = {k: v for k, v in schema_count.items() if v > 0}
             schema_labels = list(filtered_schema.keys())
             schema_values = list(filtered_schema.values())
@@ -601,35 +857,6 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 }},
                 legend: {{
                     position: 'bottom'
-                }}
-            }}
-        }}
-    }});
-"""
-        else:
-            # Ha nincs schema, üres chart helyett üzenet
-            html_content += f"""
-    // Schema Chart - {uid} (nincs schema adat)
-    new Chart(document.getElementById('schemaChart_{uid}'), {{
-        type: 'doughnut',
-        data: {{
-            labels: ['Nincs Schema.org'],
-            datasets: [{{
-                data: [1],
-                backgroundColor: ['rgba(200, 200, 200, 0.5)'],
-                borderWidth: 0
-            }}]
-        }},
-        options: {{
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {{
-                title: {{
-                    display: true,
-                    text: 'Schema.org Típusok - Nincs adat'
-                }},
-                legend: {{
-                    display: false
                 }}
             }}
         }}
