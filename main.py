@@ -405,6 +405,26 @@ class GEOAnalyzer:
         print("  📱 Mobile teszt...")
         result["mobile_friendly"] = self.check_mobile_friendly(html)
         
+        # AI-specifikus metrikák
+        print("  🧠 AI metrikák...")
+        ai_metrics_analyzer = AISpecificMetrics()
+        result["ai_metrics"] = ai_metrics_analyzer.analyze_ai_readiness(html, url)
+        result["ai_metrics_summary"] = ai_metrics_analyzer.get_ai_readiness_summary(result["ai_metrics"])
+        
+        # Tartalom minőség elemzés
+        print("  📊 Tartalom elemzés...")
+        content_analyzer = ContentQualityAnalyzer()
+        content_quality = content_analyzer.analyze_content_quality(html, url)
+        content_quality["overall_quality_score"] = content_analyzer.calculate_overall_quality_score(content_quality)
+        result["content_quality"] = content_quality
+        
+        # Multi-platform GEO elemzés
+        print("  🔗 Platform kompatibilitás...")
+        platform_analyzer = MultiPlatformGEOAnalyzer()
+        result["platform_analysis"] = platform_analyzer.analyze_all_platforms(html, url)
+        result["platform_suggestions"] = platform_analyzer.get_all_suggestions(result["platform_analysis"])
+        result["platform_priorities"] = platform_analyzer.get_platform_priorities(result["platform_analysis"])
+        
         # Index hint
         parsed = urlparse(url)
         result["index_hint"] = {
@@ -435,6 +455,11 @@ class GEOAnalyzer:
         
         # AI-readiness score
         result["ai_readiness_score"] = self.calculate_ai_readiness_score(result)
+        
+        # Automatikus javítási javaslatok
+        print("  🔧 Javítási javaslatok...")
+        auto_fix_generator = AutoFixGenerator()
+        result["auto_fixes"] = auto_fix_generator.generate_all_fixes(result, url)
         
         print(f"  ✅ Kész! AI Score: {result['ai_readiness_score']}/100")
         
