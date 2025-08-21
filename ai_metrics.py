@@ -95,12 +95,41 @@ class AISpecificMetrics:
         
         for script in faq_schemas:
             try:
-                data = json.loads(script.string)
-                if isinstance(data, dict) and data.get("@type") == "FAQPage":
+                # JAVÍTÁS: Biztonságos JSON feldolgozás
+                script_content = script.string
+                if not script_content:
+                    continue
+                    
+                # Tisztítás
+                script_content = script_content.strip()
+                
+                # JSON parse
+                data = json.loads(script_content)
+                
+                # JAVÍTÁS: Rekurzív keresés FAQPage típusra
+                def find_faq(obj):
+                    if isinstance(obj, dict):
+                        if obj.get("@type") == "FAQPage":
+                            return True, len(obj.get("mainEntity", []))
+                        # Rekurzív keresés a dict értékeiben
+                        for value in obj.values():
+                            found, count = find_faq(value)
+                            if found:
+                                return found, count
+                    elif isinstance(obj, list):
+                        for item in obj:
+                            found, count = find_faq(item)
+                            if found:
+                                return found, count
+                    return False, 0
+                
+                found, count = find_faq(data)
+                if found:
                     has_faq_schema = True
-                    faq_count = len(data.get("mainEntity", []))
-                    break
-            except (json.JSONDecodeError, AttributeError):
+                    faq_count = max(faq_count, count)  # A legnagyobb értéket tartjuk meg
+                    
+            except (json.JSONDecodeError, AttributeError, TypeError) as e:
+                # Minden hibát csendben kezelünk
                 continue
         
         # Kérdés mintázatok keresése
@@ -110,7 +139,7 @@ class AISpecificMetrics:
         
         # FAQ specifikus HTML elemek
         faq_elements = len(soup.find_all(['details', 'summary'])) + \
-                      len(soup.find_all(class_=re.compile(r'faq|question|answer', re.I)))
+                    len(soup.find_all(class_=re.compile(r'faq|question|answer', re.I)))
         
         # Válasz indikátorok
         answer_indicators = 0
@@ -124,7 +153,7 @@ class AISpecificMetrics:
             "faq_html_elements": faq_elements,
             "answer_indicators": answer_indicators,
             "qa_score": min(100, (questions_found * 10 + faq_elements * 15 + 
-                                 (50 if has_faq_schema else 0)) / 2)
+                                (50 if has_faq_schema else 0)) / 2)
         }
     
     def _check_entity_markup(self, soup: BeautifulSoup) -> Dict:

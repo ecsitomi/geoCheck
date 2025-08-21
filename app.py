@@ -137,6 +137,8 @@ with col2:
 # Elemzés indítása
 st.header("🚀 Elemzés indítása")
 
+# Elemzés indítása szekció javítása (sor 130-145)
+
 if st.button("▶️ Elemzés kezdése", type="primary", disabled=not bool(url_list)):
     if not url_list:
         st.error("❌ Nem adtál meg URL-eket!")
@@ -160,14 +162,14 @@ if st.button("▶️ Elemzés kezdése", type="primary", disabled=not bool(url_l
             status_text.text("📊 URL-ek elemzése folyamatban...")
             progress_bar.progress(20)
             
-            # Elemzés futtatása
+            # JAVÍTÁS: Elemzés futtatása helyes paraméterekkel
             analyze_urls(
                 url_list=url_list,
                 api_key=api_key if not skip_pagespeed else None,
                 output_file=json_filename,
                 parallel=parallel_processing,
-                skip_pagespeed=skip_pagespeed,
-                max_workers=max_workers
+                skip_pagespeed=skip_pagespeed,  # HOZZÁADVA
+                max_workers=max_workers if parallel_processing else 1  # JAVÍTVA
             )
             
             progress_bar.progress(70)
@@ -189,8 +191,8 @@ if st.button("▶️ Elemzés kezdése", type="primary", disabled=not bool(url_l
             elapsed_time = time.time() - start_time
             status_text.text(f"✅ Elemzés befejezve! ({elapsed_time:.1f} másodperc)")
             
-            # Eredmények megjelenítése
-            st.success("🎉 Elemzés sikeres!")
+            # Eredmények megjelenítése...
+            # (a többi kód változatlan marad)
             
             col1, col2, col3 = st.columns(3)
             

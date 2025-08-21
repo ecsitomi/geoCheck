@@ -322,17 +322,38 @@ class GeminiOptimizer(AIPlattformOptimizer):
         scripts = soup.find_all("script", type="application/ld+json")
         for script in scripts:
             try:
-                data = json.loads(script.string)
+                # JAVÍTÁS: Tisztítsuk meg a JSON stringet
+                script_content = script.string
+                if not script_content:
+                    continue
+                    
+                # Whitespace tisztítás
+                script_content = script_content.strip()
+                
+                # JSON parse
+                data = json.loads(script_content)
+                
+                # JAVÍTÁS: Biztonságos dictionary kezelés
                 if isinstance(data, dict):
-                    schema_type = data.get("@type")
-                    if schema_type in self.structured_data_types:
+                    schema_type = data.get("@type")  # .get() használata
+                    if schema_type and schema_type in self.structured_data_types:
                         structured_data_score += 10
-            except (json.JSONDecodeError, AttributeError):
+                elif isinstance(data, list):
+                    # Ha lista, akkor végigmegyünk az elemeken
+                    for item in data:
+                        if isinstance(item, dict):
+                            schema_type = item.get("@type")
+                            if schema_type and schema_type in self.structured_data_types:
+                                structured_data_score += 10
+                                
+            except (json.JSONDecodeError, KeyError, TypeError, AttributeError) as e:
+                # Minden lehetséges hibát elkapunk
                 continue
         
         # Google szolgáltatásokra vonatkozó optimalizálás
-        google_features = len(soup.find_all(['[itemscope]', '[itemtype]'])) + \
-                         len(soup.find_all('meta', property=re.compile(r'^og:')))
+        google_features = len(soup.find_all(attrs={'itemscope': True})) + \
+                        len(soup.find_all(attrs={'itemtype': True})) + \
+                        len(soup.find_all('meta', property=re.compile(r'^og:')))
         
         # Lokalizáció (Gemini jobban támogatja a helyi tartalmat)
         local_indicators = len(re.findall(r'\b(?:Budapest|Magyarország|Hungary|magyar)\b', text, re.I))

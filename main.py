@@ -29,6 +29,20 @@ class GEOAnalyzer:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (compatible; GEO-Analyzer/1.0)'
         })
+
+    def _safe_analyze_url(self, url: str, skip_pagespeed: bool = False) -> Dict:
+        """Biztonságos URL elemzés wrapper - JAVÍTOTT"""
+        try:
+            return self.analyze_url(url, skip_pagespeed)
+        except Exception as e:
+            # Ha bármilyen hiba van, részletes infót adunk vissza
+            import traceback
+            return {
+                "url": url,
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "traceback": traceback.format_exc()
+            }
     
     def validate_url(self, url: str) -> bool:
         """URL validálás"""
@@ -95,7 +109,7 @@ class GEOAnalyzer:
         
         schema_info = {
             "count": {"FAQPage": 0, "HowTo": 0, "Organization": 0, "Product": 0, 
-                     "Article": 0, "LocalBusiness": 0, "Other": 0},
+                    "Article": 0, "LocalBusiness": 0, "Other": 0},
             "details": [],
             "has_breadcrumbs": False,
             "has_search_action": False
@@ -103,20 +117,33 @@ class GEOAnalyzer:
         
         for script in schemas:
             try:
-                data = json.loads(script.string)
+                # JAVÍTÁS: Tisztítsuk meg a JSON stringet whitespace-ektől
+                script_content = script.string
+                if not script_content:
+                    continue
+                    
+                # Whitespace tisztítás a JSON parse előtt
+                script_content = script_content.strip()
+                
+                # JSON parse
+                data = json.loads(script_content)
                 items = data if isinstance(data, list) else [data]
                 
                 for item in items:
-                    schema_type = item.get("@type")
+                    # JAVÍTÁS: Biztonságos dictionary hozzáférés
+                    if not isinstance(item, dict):
+                        continue
+                        
+                    schema_type = item.get("@type")  # Használjuk a .get() metódust
                     
                     # Többféle típus kezelése
                     if isinstance(schema_type, list):
                         schema_type = schema_type[0] if schema_type else "Unknown"
                     
                     # Kategorizálás
-                    if schema_type in schema_info["count"]:
+                    if schema_type and schema_type in schema_info["count"]:
                         schema_info["count"][schema_type] += 1
-                    else:
+                    elif schema_type:  # Ha van type, de nem ismert
                         schema_info["count"]["Other"] += 1
                     
                     # Speciális sémák detektálása
@@ -126,14 +153,18 @@ class GEOAnalyzer:
                         schema_info["has_search_action"] = True
                     
                     # Schema részletek tárolása
-                    schema_info["details"].append({
-                        "type": schema_type,
-                        "has_image": "@image" in str(item),
-                        "has_rating": "aggregateRating" in str(item)
-                    })
-                    
+                    if schema_type:  # Csak ha van érvényes type
+                        schema_info["details"].append({
+                            "type": schema_type,
+                            "has_image": "@image" in str(item) or "image" in item,
+                            "has_rating": "aggregateRating" in str(item) or "aggregateRating" in item
+                        })
+                        
             except json.JSONDecodeError as e:
                 print(f"    ⚠️ Schema JSON parse hiba: {e}")
+                continue
+            except (KeyError, TypeError, AttributeError) as e:
+                print(f"    ⚠️ Schema feldolgozási hiba: {e}")
                 continue
         
         return schema_info
@@ -361,7 +392,7 @@ class GEOAnalyzer:
         return min(100, score)  # Max 100 pont
     
     def analyze_url(self, url: str, skip_pagespeed: bool = False) -> Dict:
-        """Egy URL teljes elemzése optimalizált PageSpeed hívással"""
+        """Egy URL teljes elemzése - JAVÍTOTT paraméterekkel"""
         if not self.validate_url(url):
             return {"url": url, "error": "Érvénytelen URL"}
         
@@ -369,112 +400,143 @@ class GEOAnalyzer:
         
         print(f"\n📊 Elemzés: {url}")
         
-        # Robots.txt
-        print("  🤖 Robots.txt...")
-        can_fetch, robots_url = self.check_robots_txt(url)
-        result["robots_txt"] = {"url": robots_url, "can_fetch": can_fetch}
-        
-        # Sitemap
-        print("  🗺️ Sitemap...")
-        sitemap_exists, sitemap_url, sitemap_size = self.check_sitemap(url)
-        result["sitemap"] = {
-            "exists": sitemap_exists, 
-            "url": sitemap_url,
-            "size_bytes": sitemap_size
-        }
-        
-        # HTML lekérés
-        print("  📄 HTML letöltés...")
-        html = self.get_html(url)
-        if not html:
-            result["error"] = "HTML nem elérhető"
-            return result
-        
-        # HTML méret
-        result["html_size_kb"] = len(html) / 1024
-        
-        # Meta és headings
-        print("  📝 Meta adatok...")
-        result["meta_and_headings"] = self.check_meta_and_headings(html)
-        
-        # Schema
-        print("  🏗️ Schema.org...")
-        result["schema"] = self.check_schema(html)
-        
-        # Mobile-friendly
-        print("  📱 Mobile teszt...")
-        result["mobile_friendly"] = self.check_mobile_friendly(html)
-        
-        # AI-specifikus metrikák
-        print("  🧠 AI metrikák...")
-        ai_metrics_analyzer = AISpecificMetrics()
-        result["ai_metrics"] = ai_metrics_analyzer.analyze_ai_readiness(html, url)
-        result["ai_metrics_summary"] = ai_metrics_analyzer.get_ai_readiness_summary(result["ai_metrics"])
-        
-        # Tartalom minőség elemzés
-        print("  📊 Tartalom elemzés...")
-        content_analyzer = ContentQualityAnalyzer()
-        content_quality = content_analyzer.analyze_content_quality(html, url)
-        content_quality["overall_quality_score"] = content_analyzer.calculate_overall_quality_score(content_quality)
-        result["content_quality"] = content_quality
-        
-        # Multi-platform GEO elemzés
-        print("  🔗 Platform kompatibilitás...")
-        platform_analyzer = MultiPlatformGEOAnalyzer()
-        result["platform_analysis"] = platform_analyzer.analyze_all_platforms(html, url)
-        result["platform_suggestions"] = platform_analyzer.get_all_suggestions(result["platform_analysis"])
-        result["platform_priorities"] = platform_analyzer.get_platform_priorities(result["platform_analysis"])
-        
-        # Index hint
-        parsed = urlparse(url)
-        result["index_hint"] = {
-            "google_search_url": f"https://www.google.com/search?q=site:{parsed.netloc}",
-            "bing_search_url": f"https://www.bing.com/search?q=site:{parsed.netloc}"
-        }
-        
-        # PageSpeed Insights (csak ha van API kulcs)
-        pagespeed_results = {}
-        if self.api_key and not skip_pagespeed:
-            print("  ⚡ PageSpeed Insights...")
+        try:
+            # Robots.txt
+            print("  🤖 Robots.txt...")
+            can_fetch, robots_url = self.check_robots_txt(url)
+            result["robots_txt"] = {"url": robots_url, "can_fetch": can_fetch}
             
-            # Először mobile (fontosabb)
-            mobile_psi = self.get_pagespeed_insights_with_retry(url, 'mobile')
-            if mobile_psi:
-                pagespeed_results["mobile"] = mobile_psi
+            # Sitemap
+            print("  🗺️ Sitemap...")
+            sitemap_exists, sitemap_url, sitemap_size = self.check_sitemap(url)
+            result["sitemap"] = {
+                "exists": sitemap_exists, 
+                "url": sitemap_url,
+                "size_bytes": sitemap_size
+            }
+            
+            # HTML lekérés
+            print("  📄 HTML letöltés...")
+            html = self.get_html(url)
+            if not html:
+                result["error"] = "HTML nem elérhető"
+                return result
+            
+            # HTML méret
+            result["html_size_kb"] = len(html) / 1024
+            
+            # Meta és headings
+            print("  📝 Meta adatok...")
+            result["meta_and_headings"] = self.check_meta_and_headings(html)
+            
+            # Schema - JAVÍTOTT hívás
+            print("  🏗️ Schema.org...")
+            result["schema"] = self.check_schema(html)
+            
+            # Mobile-friendly
+            print("  📱 Mobile teszt...")
+            result["mobile_friendly"] = self.check_mobile_friendly(html)
+            
+            # AI-specifikus metrikák - JAVÍTOTT hibakezeléssel
+            print("  🧠 AI metrikák...")
+            try:
+                ai_metrics_analyzer = AISpecificMetrics()
+                result["ai_metrics"] = ai_metrics_analyzer.analyze_ai_readiness(html, url)
+                result["ai_metrics_summary"] = ai_metrics_analyzer.get_ai_readiness_summary(result["ai_metrics"])
+            except Exception as e:
+                print(f"    ⚠️ AI metrikák hiba: {e}")
+                result["ai_metrics"] = {"error": str(e)}
+                result["ai_metrics_summary"] = {"error": str(e)}
+            
+            # Tartalom minőség elemzés - JAVÍTOTT hibakezeléssel
+            print("  📊 Tartalom elemzés...")
+            try:
+                content_analyzer = ContentQualityAnalyzer()
+                content_quality = content_analyzer.analyze_content_quality(html, url)
+                content_quality["overall_quality_score"] = content_analyzer.calculate_overall_quality_score(content_quality)
+                result["content_quality"] = content_quality
+            except Exception as e:
+                print(f"    ⚠️ Tartalom elemzés hiba: {e}")
+                result["content_quality"] = {"error": str(e)}
+            
+            # Multi-platform GEO elemzés - JAVÍTOTT hibakezeléssel
+            print("  🔗 Platform kompatibilitás...")
+            try:
+                platform_analyzer = MultiPlatformGEOAnalyzer()
+                result["platform_analysis"] = platform_analyzer.analyze_all_platforms(html, url)
+                result["platform_suggestions"] = platform_analyzer.get_all_suggestions(result["platform_analysis"])
+                result["platform_priorities"] = platform_analyzer.get_platform_priorities(result["platform_analysis"])
+            except Exception as e:
+                print(f"    ⚠️ Platform elemzés hiba: {e}")
+                result["platform_analysis"] = {"error": str(e)}
+                result["platform_suggestions"] = {"error": str(e)}
+                result["platform_priorities"] = []
+            
+            # Index hint
+            parsed = urlparse(url)
+            result["index_hint"] = {
+                "google_search_url": f"https://www.google.com/search?q=site:{parsed.netloc}",
+                "bing_search_url": f"https://www.bing.com/search?q=site:{parsed.netloc}"
+            }
+            
+            # PageSpeed Insights - JAVÍTVA skip_pagespeed kezeléssel
+            pagespeed_results = {}
+            if self.api_key and not skip_pagespeed:
+                print("  ⚡ PageSpeed Insights...")
                 
-                # Desktop csak akkor, ha mobile sikeres volt
-                print("  💻 PageSpeed Desktop...")
-                desktop_psi = self.get_pagespeed_insights_with_retry(url, 'desktop', max_retries=2)  # Kevesebb retry desktop-ra
-                if desktop_psi:
-                    pagespeed_results["desktop"] = desktop_psi
+                # Először mobile (fontosabb)
+                mobile_psi = self.get_pagespeed_insights_with_retry(url, 'mobile')
+                if mobile_psi:
+                    pagespeed_results["mobile"] = mobile_psi
+                    
+                    # Desktop csak akkor, ha mobile sikeres volt
+                    print("  💻 PageSpeed Desktop...")
+                    desktop_psi = self.get_pagespeed_insights_with_retry(url, 'desktop', max_retries=2)
+                    if desktop_psi:
+                        pagespeed_results["desktop"] = desktop_psi
+            elif skip_pagespeed:
+                print("  ⏭️ PageSpeed átugrása (beállítás szerint)")
             else:
-                print("  ⚠️ PageSpeed átugrása - túl sok hiba")
-        
-        if pagespeed_results:
-            result["pagespeed_insights"] = pagespeed_results
-        
-        # AI-readiness score
-        result["ai_readiness_score"] = self.calculate_ai_readiness_score(result)
-        
-        # Automatikus javítási javaslatok
-        print("  🔧 Javítási javaslatok...")
-        auto_fix_generator = AutoFixGenerator()
-        result["auto_fixes"] = auto_fix_generator.generate_all_fixes(result, url)
-        
-        print(f"  ✅ Kész! AI Score: {result['ai_readiness_score']}/100")
+                print("  ⚠️ PageSpeed átugrása (nincs API kulcs)")
+            
+            if pagespeed_results:
+                result["pagespeed_insights"] = pagespeed_results
+            
+            # AI-readiness score
+            result["ai_readiness_score"] = self.calculate_ai_readiness_score(result)
+            
+            # Automatikus javítási javaslatok - JAVÍTOTT hibakezeléssel
+            print("  🔧 Javítási javaslatok...")
+            try:
+                auto_fix_generator = AutoFixGenerator()
+                result["auto_fixes"] = auto_fix_generator.generate_all_fixes(result, url)
+            except Exception as e:
+                print(f"    ⚠️ Javítási javaslatok hiba: {e}")
+                result["auto_fixes"] = {"error": str(e)}
+            
+            print(f"  ✅ Kész! AI Score: {result['ai_readiness_score']}/100")
+            
+        except Exception as e:
+            # Általános hibakezelés
+            import traceback
+            print(f"  ❌ Kritikus hiba: {e}")
+            traceback.print_exc()
+            result["error"] = str(e)
+            result["error_type"] = type(e).__name__
+            result["ai_readiness_score"] = 0
         
         return result
     
-    def analyze_urls_parallel(self, url_list: List[str], max_workers: int = 2, 
-                         skip_pagespeed: bool = False) -> List[Dict]:
-        """Több URL párhuzamos elemzése"""
+    def analyze_urls_parallel(self, url_list: List[str], max_workers: int = 2, skip_pagespeed: bool = False) -> List[Dict]:
+        """Több URL párhuzamos elemzése - JAVÍTOTT"""
         results = []
         
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # JAVÍTÁS: skip_pagespeed átadása minden worker-nek
             future_to_url = {
-            executor.submit(self.analyze_url, url, skip_pagespeed): url 
-            for url in url_list
-        }
+                executor.submit(self._safe_analyze_url, url, skip_pagespeed): url 
+                for url in url_list
+            }
             
             for future in as_completed(future_to_url):
                 url = future_to_url[future]
@@ -483,41 +545,58 @@ class GEOAnalyzer:
                     results.append(result)
                     print(f"✓ Befejezve: {url}")
                 except Exception as e:
-                    print(f"✗ Hiba {url} elemzésekor: {e}")
-                    results.append({"url": url, "error": str(e)})
+                    # JAVÍTÁS: Részletesebb hibaüzenet
+                    print(f"✗ Hiba {url} elemzésekor: {type(e).__name__}: {str(e)}")
+                    import traceback
+                    traceback.print_exc()  # Teljes stack trace kiírása
+                    results.append({
+                        "url": url, 
+                        "error": str(e),
+                        "error_type": type(e).__name__
+                    })
         
         return results
-
 
 def analyze_urls(url_list: List[str], api_key: Optional[str] = None, 
                 output_file: str = "ai_readiness_full_report.json",
                 parallel: bool = True, skip_pagespeed: bool = False,
                 max_workers: int = 2) -> None:
-    """Fő elemző függvény fejlesztett opciókkal"""
+    """Fő elemző függvény - JAVÍTOTT paraméterekkel"""
     
     analyzer = GEOAnalyzer(api_key)
-    analyzer.skip_pagespeed = skip_pagespeed
+    
+    # Ha nincs API kulcs, automatikusan skip PageSpeed
+    if not analyzer.api_key:
+        skip_pagespeed = True
     
     print(f"{'='*50}")
     print(f"🚀 GEO Analyzer - {len(url_list)} URL elemzése")
     print(f"API kulcs: {'✅ Van' if analyzer.api_key else '❌ Nincs'}")
     print(f"PageSpeed: {'❌ Átugrás' if skip_pagespeed else '✅ Engedélyezve'}")
     print(f"Párhuzamos: {'✅ Igen' if parallel and len(url_list) > 1 else '❌ Nem'}")
+    if parallel and len(url_list) > 1:
+        print(f"Worker szálak: {max_workers}")
     print(f"{'='*50}")
     
     start_time = time.time()
     
     if parallel and len(url_list) > 1:
-        results = analyzer.analyze_urls_parallel(url_list, max_workers=max_workers)
+        # JAVÍTÁS: Paraméterek átadása
+        results = analyzer.analyze_urls_parallel(url_list, max_workers, skip_pagespeed)
     else:
         results = []
         for url in url_list:
-            result = analyzer.analyze_url(url)
+            # JAVÍTÁS: skip_pagespeed átadása
+            result = analyzer.analyze_url(url, skip_pagespeed)
             results.append(result)
     
     # Eredmények mentése
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
+    try:
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        print(f"💾 Jelentés mentve: {output_file}")
+    except Exception as e:
+        print(f"❌ Hiba a fájl mentésekor: {e}")
     
     elapsed_time = time.time() - start_time
     
@@ -528,23 +607,34 @@ def analyze_urls(url_list: List[str], api_key: Optional[str] = None,
     print(f"{'='*50}")
     
     # Összefoglaló statisztikák
-    valid_results = [r for r in results if 'ai_readiness_score' in r]
+    valid_results = [r for r in results if 'ai_readiness_score' in r and 'error' not in r]
+    error_results = [r for r in results if 'error' in r]
+    
     if valid_results:
         avg_score = sum(r['ai_readiness_score'] for r in valid_results) / len(valid_results)
-        print(f"\n📊 Átlagos AI-readiness score: {avg_score:.1f}/100")
+        print(f"\n📊 Összefoglaló:")
+        print(f"  • Sikeres elemzések: {len(valid_results)}/{len(results)}")
+        print(f"  • Átlagos AI-readiness score: {avg_score:.1f}/100")
         
         # Top 3 és Bottom 3
         sorted_results = sorted(valid_results, key=lambda x: x['ai_readiness_score'], reverse=True)
         
-        print("\n🏆 Legjobb 3 oldal:")
-        for r in sorted_results[:3]:
-            print(f"  • {r['url']}: {r['ai_readiness_score']}/100")
+        if sorted_results:
+            print("\n🏆 Legjobb oldalak:")
+            for r in sorted_results[:3]:
+                print(f"  • {r['url']}: {r['ai_readiness_score']}/100")
         
         if len(sorted_results) > 3:
             print("\n🔧 Fejlesztendő oldalak:")
             for r in sorted_results[-3:]:
                 if r['ai_readiness_score'] < 50:
                     print(f"  • {r['url']}: {r['ai_readiness_score']}/100")
+    
+    if error_results:
+        print(f"\n⚠️ Hibás elemzések ({len(error_results)}):")
+        for r in error_results:
+            error_msg = r.get('error', 'Ismeretlen hiba')
+            print(f"  • {r['url']}: {error_msg[:100]}...")  # Max 100 karakter
 
 
 # Példa futtatás
