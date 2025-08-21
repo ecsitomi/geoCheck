@@ -119,6 +119,67 @@ class AdvancedReportGenerator:
         
         return trends
     
+    def _analyze_schema_trends(self, results: List[Dict]) -> Dict:
+        """Schema adoption trendek"""
+        schema_counts = []
+        for result in results:
+            schema_count = sum(result.get('schema', {}).get('count', {}).values())
+            schema_counts.append(schema_count)
+        
+        return {
+            "average_schema_count": round(statistics.mean(schema_counts), 1) if schema_counts else 0,
+            "sites_with_schema": sum(1 for count in schema_counts if count > 0),
+            "schema_adoption_rate": round((sum(1 for count in schema_counts if count > 0) / len(results)) * 100, 1) if results else 0
+        }
+    
+    def _analyze_mobile_trends(self, results: List[Dict]) -> Dict:
+        """Mobile readiness trendek"""
+        mobile_ready = sum(1 for r in results if r.get('mobile_friendly', {}).get('has_viewport'))
+        responsive_images = sum(1 for r in results if r.get('mobile_friendly', {}).get('responsive_images'))
+        
+        return {
+            "mobile_viewport_rate": round((mobile_ready / len(results)) * 100, 1) if results else 0,
+            "responsive_images_rate": round((responsive_images / len(results)) * 100, 1) if results else 0,
+            "overall_mobile_score": round(((mobile_ready + responsive_images) / (len(results) * 2)) * 100, 1) if results else 0
+        }
+    
+    def _analyze_content_trends(self, results: List[Dict]) -> Dict:
+        """Tartalom minőség trendek"""
+        quality_scores = []
+        for result in results:
+            content_quality = result.get('content_quality', {})
+            if content_quality:
+                quality_scores.append(content_quality.get('overall_quality_score', 0))
+        
+        return {
+            "average_content_quality": round(statistics.mean(quality_scores), 1) if quality_scores else 0,
+            "sites_with_quality_data": len(quality_scores),
+            "quality_distribution": self._score_distribution(quality_scores) if quality_scores else {}
+        }
+    
+    def _analyze_ai_maturity(self, results: List[Dict]) -> Dict:
+        """AI optimalizálás érettség"""
+        ai_scores = [r.get('ai_readiness_score', 0) for r in results]
+        ai_enhanced = sum(1 for r in results if r.get('ai_content_evaluation'))
+        
+        return {
+            "average_ai_readiness": round(statistics.mean(ai_scores), 1) if ai_scores else 0,
+            "ai_enhanced_sites": ai_enhanced,
+            "ai_enhancement_rate": round((ai_enhanced / len(results)) * 100, 1) if results else 0,
+            "maturity_level": self._determine_maturity_level(statistics.mean(ai_scores) if ai_scores else 0)
+        }
+    
+    def _determine_maturity_level(self, avg_score: float) -> str:
+        """AI érettségi szint meghatározása"""
+        if avg_score >= 80:
+            return "Fejlett"
+        elif avg_score >= 60:
+            return "Közepes"
+        elif avg_score >= 40:
+            return "Kezdő"
+        else:
+            return "Alapszintű"
+    
     def _identify_common_issues(self, results: List[Dict]) -> List[Dict]:
         """Gyakori problémák azonosítása"""
         
@@ -211,6 +272,74 @@ class AdvancedReportGenerator:
         
         return opportunities
     
+    def _analyze_platform_opportunities(self, results: List[Dict]) -> List[Dict]:
+        """Platform specifikus lehetőségek elemzése"""
+        opportunities = []
+        
+        # ChatGPT optimalizálás lehetőségek
+        low_chatgpt = sum(1 for r in results 
+                         if r.get('platform_analysis', {}).get('chatgpt', {}).get('compatibility_score', 0) < 50)
+        if low_chatgpt > len(results) * 0.5:
+            opportunities.append({
+                "opportunity": "ChatGPT optimalizálás",
+                "description": "Strukturált tartalom és Q&A formátum hozzáadása",
+                "affected_sites": low_chatgpt,
+                "potential_score_increase": 25,
+                "implementation_effort": "közepes",
+                "impact_level": "high"
+            })
+        
+        # Schema.org lehetőségek
+        no_schema = sum(1 for r in results if sum(r.get('schema', {}).get('count', {}).values()) == 0)
+        if no_schema > 0:
+            opportunities.append({
+                "opportunity": "Schema.org implementáció",
+                "description": "Strukturált adatok hozzáadása minden platformhoz",
+                "affected_sites": no_schema,
+                "potential_score_increase": 30,
+                "implementation_effort": "magas",
+                "impact_level": "high"
+            })
+        
+        return opportunities
+    
+    def _analyze_content_opportunities(self, results: List[Dict]) -> List[Dict]:
+        """Tartalom lehetőségek elemzése"""
+        opportunities = []
+        
+        # Meta description optimalizálás
+        poor_descriptions = sum(1 for r in results 
+                               if not r.get('meta_and_headings', {}).get('description_optimal'))
+        if poor_descriptions > 0:
+            opportunities.append({
+                "opportunity": "Meta description optimalizálás",
+                "description": "Jobb keresőmegjelenés és CTR",
+                "affected_sites": poor_descriptions,
+                "potential_score_increase": 15,
+                "implementation_effort": "alacsony",
+                "impact_level": "medium"
+            })
+        
+        return opportunities
+    
+    def _analyze_technical_opportunities(self, results: List[Dict]) -> List[Dict]:
+        """Technikai lehetőségek elemzése"""
+        opportunities = []
+        
+        # Mobile optimalizálás
+        no_mobile = sum(1 for r in results if not r.get('mobile_friendly', {}).get('has_viewport'))
+        if no_mobile > 0:
+            opportunities.append({
+                "opportunity": "Mobile optimalizálás",
+                "description": "Viewport meta tag és responsive design",
+                "affected_sites": no_mobile,
+                "potential_score_increase": 20,
+                "implementation_effort": "közepes",
+                "impact_level": "high"
+            })
+        
+        return opportunities
+    
     def _generate_executive_summary(self, results: List[Dict], stats: Dict, 
                                   trends: Dict, issues: List[Dict], 
                                   opportunities: List[Dict], competitor_data: Optional[List[Dict]]) -> Dict:
@@ -237,12 +366,99 @@ class AdvancedReportGenerator:
                 "competitive_position": self._assess_competitive_position(stats, competitor_data) if competitor_data else None,
                 "risk_assessment": self._assess_risks(issues)
             },
-            "key_metrics": key_metrics,
-            "roi_estimation": roi_estimation,
+            "performance_metrics": key_metrics,
+            "roi_analysis": roi_estimation,
             "strategic_recommendations": strategic_recommendations,
-            "next_steps": self._define_next_steps(issues, opportunities),
-            "timeline": self._create_implementation_timeline(issues, opportunities)
+            "next_steps": self._generate_next_steps(opportunities[:5])
         }
+    
+    def _extract_key_findings(self, stats: Dict, issues: List[Dict], opportunities: List[Dict]) -> List[str]:
+        """Kulcs megállapítások kinyerése"""
+        findings = []
+        
+        avg_score = stats['ai_readiness']['average']
+        findings.append(f"Átlagos AI readiness pontszám: {avg_score}/100")
+        
+        if issues:
+            critical_count = len([i for i in issues if i['type'] == 'critical'])
+            if critical_count > 0:
+                findings.append(f"{critical_count} kritikus probléma azonosítva")
+        
+        if opportunities:
+            high_impact = len([o for o in opportunities if o.get('impact_level') == 'high'])
+            findings.append(f"{high_impact} nagy hatású fejlesztési lehetőség")
+        
+        return findings
+    
+    def _assess_competitive_position(self, stats: Dict, competitor_data: List[Dict]) -> str:
+        """Versenytársi pozíció értékelése"""
+        if not competitor_data:
+            return "Nincs versenytársi adat"
+        
+        # Egyszerű összehasonlítás
+        our_score = stats['ai_readiness']['average']
+        competitor_scores = [c.get('ai_readiness_score', 0) for c in competitor_data]
+        avg_competitor = statistics.mean(competitor_scores) if competitor_scores else 0
+        
+        if our_score > avg_competitor + 10:
+            return "Versenyelőnyben"
+        elif our_score > avg_competitor - 10:
+            return "Versenyképes"
+        else:
+            return "Lemaradásban"
+    
+    def _assess_risks(self, issues: List[Dict]) -> Dict:
+        """Kockázat értékelése"""
+        critical_issues = [i for i in issues if i['type'] == 'critical']
+        high_issues = [i for i in issues if i['type'] == 'high']
+        
+        risk_level = "Alacsony"
+        if critical_issues:
+            risk_level = "Kritikus"
+        elif len(high_issues) > 2:
+            risk_level = "Magas"
+        elif high_issues:
+            risk_level = "Közepes"
+        
+        return {
+            "overall_risk": risk_level,
+            "critical_count": len(critical_issues),
+            "high_count": len(high_issues),
+            "immediate_action_required": len(critical_issues) > 0
+        }
+    
+    def _generate_executive_recommendations(self, stats: Dict, issues: List[Dict], opportunities: List[Dict]) -> List[str]:
+        """Executive szintű ajánlások"""
+        recommendations = []
+        
+        # Kritikus problémák alapján
+        critical_issues = [i for i in issues if i['type'] == 'critical']
+        if critical_issues:
+            recommendations.append("Azonnali beavatkozás szükséges a kritikus problémák megoldására")
+        
+        # Pontszám alapján
+        avg_score = stats['ai_readiness']['average']
+        if avg_score < 50:
+            recommendations.append("Teljes AI optimalizálási stratégia kidolgozása javasolt")
+        elif avg_score < 70:
+            recommendations.append("Célzott fejlesztések a gyenge területeken")
+        
+        # Lehetőségek alapján
+        high_impact_ops = [o for o in opportunities if o.get('impact_level') == 'high']
+        if high_impact_ops:
+            recommendations.append(f"Prioritás: {len(high_impact_ops)} nagy hatású fejlesztés megvalósítása")
+        
+        return recommendations
+    
+    def _generate_next_steps(self, top_opportunities: List[Dict]) -> List[str]:
+        """Következő lépések meghatározása"""
+        steps = []
+        
+        for i, opp in enumerate(top_opportunities, 1):
+            effort = opp.get('implementation_effort', 'közepes')
+            steps.append(f"{i}. {opp.get('opportunity', 'N/A')} ({effort} ráfordítás)")
+        
+        return steps
     
     def _generate_technical_audit(self, results: List[Dict], stats: Dict,
                                 trends: Dict, issues: List[Dict],
@@ -381,6 +597,48 @@ class AdvancedReportGenerator:
             "top_content_areas": self._identify_content_strengths(results),
             "content_gaps": self._identify_content_gaps(results)
         }
+    
+    def _identify_content_strengths(self, results: List[Dict]) -> List[str]:
+        """Tartalom erősségek azonosítása"""
+        strengths = []
+        
+        # Schema használat ellenőrzése
+        schema_usage = sum(1 for r in results if sum(r.get('schema', {}).get('count', {}).values()) > 0)
+        if schema_usage > len(results) * 0.5:
+            strengths.append("Jó Schema.org lefedettség")
+        
+        # Meta adatok minősége
+        good_titles = sum(1 for r in results if r.get('meta_and_headings', {}).get('title_optimal'))
+        if good_titles > len(results) * 0.7:
+            strengths.append("Optimális title tagek")
+        
+        # Mobile-friendly
+        mobile_ready = sum(1 for r in results if r.get('mobile_friendly', {}).get('has_viewport'))
+        if mobile_ready > len(results) * 0.8:
+            strengths.append("Jó mobile optimalizálás")
+        
+        return strengths
+    
+    def _identify_content_gaps(self, results: List[Dict]) -> List[str]:
+        """Tartalom hiányosságok azonosítása"""
+        gaps = []
+        
+        # AI metrics hiányok
+        low_ai_scores = sum(1 for r in results if r.get('ai_readiness_score', 0) < 40)
+        if low_ai_scores > len(results) * 0.3:
+            gaps.append("Alacsony AI readiness pontszámok")
+        
+        # Schema hiányok
+        no_schema = sum(1 for r in results if sum(r.get('schema', {}).get('count', {}).values()) == 0)
+        if no_schema > len(results) * 0.3:
+            gaps.append("Hiányzó strukturált adatok")
+        
+        # Heading problémák
+        h1_issues = sum(1 for r in results if r.get('meta_and_headings', {}).get('h1_count', 0) != 1)
+        if h1_issues > len(results) * 0.4:
+            gaps.append("Helytelen heading struktúra")
+        
+        return gaps
     
     def _analyze_technical_metrics(self, results: List[Dict]) -> Dict:
         """Technikai metrikák elemzése"""

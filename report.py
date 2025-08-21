@@ -787,9 +787,9 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         
         # Enhanced tabok hozzáadása
         if has_ai_eval:
-            html_content += f'<button class="tab" onclick="showTab(event, \'{uid}\', \'ai-enhanced\')">🚀 AI Enhanced</button>'
+            html_content += f'\n                <button class="tab" onclick="showTab(event, \'{uid}\', \'ai-enhanced\')">🚀 AI Enhanced</button>'
         if has_schema_enhanced:
-            html_content += f'<button class="tab" onclick="showTab(event, \'{uid}\', \'schema-enhanced\')">🏗️ Schema Enhanced</button>'
+            html_content += f'\n                <button class="tab" onclick="showTab(event, \'{uid}\', \'schema-enhanced\')">🏗️ Schema Enhanced</button>'
             
         html_content += f"""
                 <button class="tab" onclick="showTab(event, '{uid}', 'content')">📝 Tartalom</button>
@@ -1053,25 +1053,371 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             
         html_content += "</div>"
         
-        # Tartalom, Platformok, Javítások tabok (rövidített verzió a tömörség kedvéért)
+        # Tartalom tab - részletes tartalom minőségi elemzés
         html_content += f"""
             <!-- Tartalom tab -->
             <div id="{uid}-content" class="tab-content">
                 <h3>📝 Tartalom minőség</h3>
-                <p>Tartalom elemzési eredmények...</p>
+                <div class="metrics-grid">"""
+        
+        # Content Quality adatok megjelenítése
+        if content_quality:
+            readability = content_quality.get('readability', {})
+            keyword_analysis = content_quality.get('keyword_analysis', {})
+            content_depth = content_quality.get('content_depth', {})
+            authority_signals = content_quality.get('authority_signals', {})
+            semantic_richness = content_quality.get('semantic_richness', {})
+            
+            html_content += f"""
+                    <div class="metric-item">
+                        <div class="metric-title">📖 Olvashatóság</div>
+                        <div class="metric-value">
+                            Szó szám: {readability.get('word_count', 0)}<br>
+                            Mondatok: {readability.get('sentence_count', 0)}<br>
+                            Átlag mondat hossz: {fmt(readability.get('avg_sentence_length', 0), 1)}<br>
+                            Flesch pontszám: {readability.get('flesch_score', 0)}<br>
+                            Szint: {readability.get('readability_level', 'N/A')}<br>
+                            Pontszám: {fmt(readability.get('readability_score', 0), 1)}/100
+                        </div>
+                    </div>
+                    
+                    <div class="metric-item">
+                        <div class="metric-title">🔍 Kulcsszó elemzés</div>
+                        <div class="metric-value">
+                            Össz szó: {keyword_analysis.get('total_words', 0)}<br>
+                            Egyedi szavak: {keyword_analysis.get('unique_words', 0)}<br>
+                            Szókincs gazdagság: {fmt(keyword_analysis.get('vocabulary_richness', 0) * 100, 1)}%<br>
+                            Top kulcsszavak:<br>"""
+            
+            # Top kulcsszavak megjelenítése
+            top_keywords = keyword_analysis.get('top_keywords', [])[:5]
+            for keyword_data in top_keywords:
+                if isinstance(keyword_data, list) and len(keyword_data) >= 2:
+                    keyword, count = keyword_data[0], keyword_data[1]
+                    html_content += f"                            • {keyword}: {count}x<br>"
+            
+            html_content += f"""
+                        </div>
+                    </div>
+                    
+                    <div class="metric-item">
+                        <div class="metric-title">📊 Tartalom mélység</div>
+                        <div class="metric-value">
+                            Kategória: {content_depth.get('content_length_category', 'N/A')}<br>
+                            Témakör lefedettség: {content_depth.get('topic_coverage', 0)}<br>
+                            Minőségi mutatók: {content_depth.get('quality_indicators', 0)}<br>
+                            Példák száma: {content_depth.get('examples_count', 0)}<br>
+                            Statisztikák: {content_depth.get('statistics_count', 0)}<br>
+                            Mélység pontszám: {fmt(content_depth.get('depth_score', 0), 1)}/100
+                        </div>
+                    </div>
+                    
+                    <div class="metric-item">
+                        <div class="metric-title">🎖️ Tekintély jelzők</div>
+                        <div class="metric-value">
+                            Szerző info: {"✅" if authority_signals.get('has_author_info') else "❌"}<br>
+                            Publikálási dátum: {"✅" if authority_signals.get('has_publication_dates') else "❌"}<br>
+                            Kapcsolat info: {authority_signals.get('contact_information', 0)}<br>
+                            Szakmai terminológia: {authority_signals.get('professional_terminology', 0)}<br>
+                            Tekintély pontszám: {fmt(authority_signals.get('authority_score', 0), 1)}/100
+                        </div>
+                    </div>
+                    
+                    <div class="metric-item">
+                        <div class="metric-title">🧠 Szemantikai gazdagság</div>
+                        <div class="metric-value">
+                            Entitások:<br>
+                            • Személyek: {semantic_richness.get('entities', {}).get('persons', 0)}<br>
+                            • Helyek: {semantic_richness.get('entities', {}).get('places', 0)}<br>
+                            • Dátumok: {semantic_richness.get('entities', {}).get('dates', 0)}<br>
+                            Szakértelem:<br>
+                            • Technológia: {semantic_richness.get('domain_expertise', {}).get('technology', 0)}<br>
+                            • Üzlet: {semantic_richness.get('domain_expertise', {}).get('business', 0)}<br>
+                            Szemantikai pontszám: {fmt(semantic_richness.get('semantic_score', 0), 1)}/100
+                        </div>
+                    </div>
+                    
+                    <div class="metric-item">
+                        <div class="metric-title">📈 Összesített minőség</div>
+                        <div class="metric-value">
+                            <strong>Teljes pontszám: {fmt(content_quality.get('overall_quality_score', 0), 1)}/100</strong>
+                        </div>
+                    </div>"""
+        else:
+            html_content += '<div class="metric-item"><div class="metric-title">❌ Nincs adat</div><div class="metric-value">Tartalom minőségi adatok nem elérhetők</div></div>'
+            
+        html_content += f"""
             </div>
             
             <!-- Platformok tab -->
             <div id="{uid}-platforms" class="tab-content">
-                <h3>🎯 Platform kompatibilitás</h3>
-                <p>Platform elemzési eredmények...</p>
+                <h3>🎯 Platform kompatibilitás</h3>"""
+        
+        # Platform Analysis adatok megjelenítése
+        if platform_analysis:
+            html_content += '<div class="platform-grid">'
+            
+            for platform_name, platform_data in platform_analysis.items():
+                if platform_name == 'summary' or not isinstance(platform_data, dict):
+                    continue
+                    
+                platform_score = platform_data.get('compatibility_score', 0)
+                optimization_level = platform_data.get('optimization_level', 'N/A')
+                ai_enhanced = platform_data.get('ai_enhanced', False)
+                ai_score = platform_data.get('ai_score', 0)
+                hybrid_score = platform_data.get('hybrid_compatibility_score', 0)
+                ai_suggestions = platform_data.get('ai_suggestions', [])
+                
+                html_content += f"""
+                    <div class="platform-card {'ai-enhanced' if ai_enhanced else ''}">
+                        <div class="platform-name">
+                            {platform_name.upper()} {'🤖' if ai_enhanced else ''}
+                        </div>
+                        <div class="platform-score">{fmt(platform_score, 0)}</div>
+                        <div class="platform-level">{optimization_level}</div>
+                        <div style="margin-top: 10px; font-size: 0.8rem;">
+                            AI Score: {fmt(ai_score, 0)}/100<br>
+                            Hybrid Score: {fmt(hybrid_score, 1)}/100
+                        </div>"""
+                
+                # AI javaslatok megjelenítése
+                if ai_suggestions and len(ai_suggestions) > 0:
+                    html_content += '<div style="margin-top: 10px; font-size: 0.8rem;"><strong>Javaslatok:</strong><ul style="margin: 5px 0; padding-left: 15px;">'
+                    for suggestion in ai_suggestions[:3]:  # Max 3 javaslat
+                        html_content += f'<li>{html.escape(str(suggestion))}</li>'
+                    html_content += '</ul></div>'
+                
+                html_content += '</div>'
+            
+            html_content += '</div>'
+            
+            # Platform összesítés
+            platform_summary = platform_analysis.get('summary', {})
+            if platform_summary:
+                html_content += f"""
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                    <h4>📊 Platform Összesítés</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 10px;">
+                        <div>
+                            <strong>Átlag kompatibilitás:</strong> {fmt(platform_summary.get('average_compatibility', 0), 1)}/100
+                        </div>
+                        <div>
+                            <strong>Átlag AI pontszám:</strong> {fmt(platform_summary.get('average_ai_score', 0), 1)}/100
+                        </div>
+                        <div>
+                            <strong>Legjobb platform:</strong> {platform_summary.get('best_platform', {}).get('name', 'N/A')} 
+                            ({fmt(platform_summary.get('best_platform', {}).get('score', 0), 1)})
+                        </div>
+                        <div>
+                            <strong>Fejlesztési potenciál:</strong> +{fmt(platform_summary.get('improvement_potential', 0), 1)} pont
+                        </div>
+                    </div>
+                </div>"""
+        else:
+            html_content += '<p>Platform elemzési adatok nem elérhetők</p>'
+        
+        html_content += '</div>'
+            
+        # Platform javaslatok megjelenítése
+        if platform_suggestions:
+            html_content += '<div style="margin-top: 20px;"><h4>💡 Platform-specifikus javaslatok</h4>'
+            
+            for platform_name, suggestions in platform_suggestions.items():
+                if platform_name == 'common_optimizations' or not isinstance(suggestions, list):
+                    continue
+                    
+                if suggestions:
+                    html_content += f'<div style="margin: 15px 0; padding: 15px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 10px; border-left: 4px solid {primary_color};">'
+                    html_content += f'<h5 style="margin-bottom: 10px; color: #333;">🎯 {platform_name.upper()} optimalizálás</h5>'
+                    html_content += '<ul style="margin: 0; padding-left: 20px;">'
+                    
+                    for suggestion in suggestions[:4]:  # Max 4 javaslat platformonként
+                        if isinstance(suggestion, dict):
+                            suggestion_text = suggestion.get('suggestion', 'N/A')
+                            priority = suggestion.get('priority', 'medium')
+                            description = suggestion.get('description', '')
+                            
+                            priority_icon = {'high': '🔴', 'medium': '🟡', 'low': '🟢'}.get(priority, '⚪')
+                            html_content += f'<li style="margin: 5px 0;"><strong>{priority_icon} {suggestion_text}</strong>'
+                            if description:
+                                html_content += f'<br><small style="color: #666;">{html.escape(description)}</small>'
+                            html_content += '</li>'
+                    
+                    html_content += '</ul></div>'
+            
+            # Közös optimalizálások
+            common_opts = platform_suggestions.get('common_optimizations', [])
+            if common_opts:
+                html_content += '<div style="margin: 15px 0; padding: 15px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 10px; border-left: 4px solid #2196f3;">'
+                html_content += '<h5 style="margin-bottom: 10px; color: #1976d2;">🌟 Közös optimalizálások (minden platformra)</h5>'
+                html_content += '<ul style="margin: 0; padding-left: 20px;">'
+                
+                for opt in common_opts[:3]:
+                    if isinstance(opt, dict):
+                        suggestion_text = opt.get('suggestion', 'N/A')
+                        platforms = opt.get('platforms', 0)
+                        html_content += f'<li style="margin: 5px 0;"><strong>{suggestion_text}</strong> <span style="color: #666;">({platforms} platformra vonatkozik)</span></li>'
+                
+                html_content += '</ul></div>'
+            
+            html_content += '</div>'
+            
+        html_content += f"""
             </div>
             
             <!-- Javítások tab -->
             <div id="{uid}-fixes" class="tab-content">
-                <h3>🔧 Javítási javaslatok</h3>
-                <p>Automatikus javítási javaslatok...</p>
-            </div>
+                <h3>🔧 Automatikus javítási javaslatok</h3>"""
+        
+        # Auto Fixes adatok megjelenítése
+        if auto_fixes:
+            # Kritikus javítások
+            critical_fixes = auto_fixes.get('critical_fixes', [])
+            if critical_fixes:
+                html_content += '<div style="margin-bottom: 20px;"><h4 style="color: #dc3545;">🚨 Kritikus javítások</h4>'
+                for fix in critical_fixes:
+                    html_content += f'<div class="fix-item" style="border-left-color: #dc3545; background: #f8d7da;">'
+                    html_content += f'<div class="fix-title">{html.escape(str(fix))}</div></div>'
+                html_content += '</div>'
+            
+            # SEO javítások
+            seo_improvements = auto_fixes.get('seo_improvements', [])
+            if seo_improvements:
+                html_content += '<div style="margin-bottom: 20px;"><h4 style="color: #28a745;">🎯 SEO javítások</h4>'
+                for improvement in seo_improvements:
+                    if isinstance(improvement, dict):
+                        issue = improvement.get('issue', 'N/A')
+                        suggestion = improvement.get('suggestion', 'N/A')
+                        impact = improvement.get('impact', 'N/A')
+                        fix_code = improvement.get('fix_code', '')
+                        
+                        html_content += f"""
+                        <div class="fix-item" style="border-left-color: #28a745;">
+                            <div class="fix-title">📝 {html.escape(issue)}</div>
+                            <div style="margin: 10px 0; color: #666;">
+                                <strong>Javaslat:</strong> {html.escape(suggestion)}<br>
+                                <strong>Hatás:</strong> {html.escape(impact)}
+                            </div>"""
+                        
+                        if fix_code:
+                            html_content += f'<div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 0.8rem; overflow-x: auto;"><strong>Javasolt kód:</strong><br>{html.escape(fix_code)}</div>'
+                        
+                        html_content += '</div>'
+                html_content += '</div>'
+            
+            # Schema javaslatok
+            schema_suggestions = auto_fixes.get('schema_suggestions', [])
+            if schema_suggestions:
+                html_content += '<div style="margin-bottom: 20px;"><h4 style="color: #667eea;">🏗️ Schema.org javaslatok</h4>'
+                for suggestion in schema_suggestions:
+                    if isinstance(suggestion, dict):
+                        schema_type = suggestion.get('type', 'N/A')
+                        priority = suggestion.get('priority', 'medium')
+                        benefit = suggestion.get('benefit', 'N/A')
+                        code = suggestion.get('code', '')
+                        
+                        priority_color = {'high': '#dc3545', 'medium': '#ffc107', 'low': '#28a745'}.get(priority, '#6c757d')
+                        
+                        html_content += f"""
+                        <div class="fix-item" style="border-left-color: {priority_color};">
+                            <div class="fix-title">🏷️ {html.escape(schema_type)} <span style="color: {priority_color}; font-size: 0.8rem;">({priority} prioritás)</span></div>
+                            <div style="margin: 10px 0; color: #666;">
+                                <strong>Előny:</strong> {html.escape(benefit)}
+                            </div>"""
+                        
+                        if code:
+                            html_content += f'<details style="margin-top: 10px;"><summary style="cursor: pointer; color: #667eea;">🔍 Schema kód megtekintése</summary><div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 0.8rem; overflow-x: auto;">{html.escape(code)}</div></details>'
+                        
+                        html_content += '</div>'
+                html_content += '</div>'
+            
+            # Tartalom optimalizálások
+            content_optimizations = auto_fixes.get('content_optimizations', [])
+            if content_optimizations:
+                html_content += '<div style="margin-bottom: 20px;"><h4 style="color: #fd7e14;">📝 Tartalom optimalizálások</h4>'
+                for optimization in content_optimizations:
+                    if isinstance(optimization, dict):
+                        issue = optimization.get('issue', 'N/A')
+                        benefit = optimization.get('benefit', 'N/A')
+                        suggestion = optimization.get('suggestion', 'N/A')
+                        example_code = optimization.get('example_code', '')
+                        ai_platforms = optimization.get('ai_platforms', [])
+                        
+                        html_content += f"""
+                        <div class="fix-item" style="border-left-color: #fd7e14;">
+                            <div class="fix-title">✏️ {html.escape(issue)}</div>
+                            <div style="margin: 10px 0; color: #666;">
+                                <strong>Javaslat:</strong> {html.escape(suggestion)}<br>
+                                <strong>Előny:</strong> {html.escape(benefit)}"""
+                        
+                        if ai_platforms:
+                            platforms_text = ', '.join(ai_platforms)
+                            html_content += f'<br><strong>AI platformok:</strong> {html.escape(platforms_text)}'
+                        
+                        html_content += '</div>'
+                        
+                        if example_code:
+                            html_content += f'<details style="margin-top: 10px;"><summary style="cursor: pointer; color: #fd7e14;">🔍 Példa kód megtekintése</summary><div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 0.8rem; overflow-x: auto;">{html.escape(example_code)}</div></details>'
+                        
+                        html_content += '</div>'
+                html_content += '</div>'
+            
+            # AI readiness javítások
+            ai_readiness_fixes = auto_fixes.get('ai_readiness_fixes', [])
+            if ai_readiness_fixes:
+                html_content += '<div style="margin-bottom: 20px;"><h4 style="color: #6f42c1;">🤖 AI Readiness javítások</h4>'
+                for fix in ai_readiness_fixes:
+                    if isinstance(fix, dict):
+                        platform = fix.get('platform', 'N/A')
+                        current_score = fix.get('current_score', 0)
+                        target_score = fix.get('target_score', 0)
+                        quick_wins = fix.get('quick_wins', [])
+                        estimated_improvement = fix.get('estimated_improvement', 'N/A')
+                        
+                        if platform != 'general_ai_optimization':
+                            html_content += f"""
+                            <div class="fix-item" style="border-left-color: #6f42c1;">
+                                <div class="fix-title">🎯 {platform.upper()} optimalizálás</div>
+                                <div style="margin: 10px 0; color: #666;">
+                                    <strong>Jelenlegi pontszám:</strong> {fmt(current_score, 1)}/100<br>
+                                    <strong>Célpont:</strong> {fmt(target_score, 1)}/100<br>
+                                    <strong>Becsült javulás:</strong> {html.escape(estimated_improvement)}
+                                </div>"""
+                            
+                            if quick_wins:
+                                html_content += '<div style="margin-top: 10px;"><strong>Gyors nyerések:</strong><ul style="margin: 5px 0; padding-left: 20px;">'
+                                for win in quick_wins:
+                                    html_content += f'<li>{html.escape(str(win))}</li>'
+                                html_content += '</ul></div>'
+                            
+                            html_content += '</div>'
+            
+            # Implementációs útmutató
+            implementation_guide = auto_fixes.get('implementation_guide', {})
+            if implementation_guide:
+                html_content += '<div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%); border-radius: 15px; border-left: 5px solid #28a745;">'
+                html_content += '<h4 style="color: #28a745; margin-bottom: 15px;">📋 Implementációs útmutató</h4>'
+                
+                priority_order = implementation_guide.get('priority_order', [])
+                if priority_order:
+                    html_content += '<div style="margin-bottom: 15px;"><strong>🔢 Prioritási sorrend:</strong><ol style="margin: 5px 0; padding-left: 20px;">'
+                    for priority in priority_order:
+                        html_content += f'<li style="margin: 2px 0;">{html.escape(priority)}</li>'
+                    html_content += '</ol></div>'
+                
+                estimated_timeline = implementation_guide.get('estimated_timeline', {})
+                if estimated_timeline:
+                    html_content += '<div style="margin-bottom: 15px;"><strong>⏱️ Becsült időkeret:</strong><ul style="margin: 5px 0; padding-left: 20px;">'
+                    for task, time in estimated_timeline.items():
+                        html_content += f'<li style="margin: 2px 0;">{task.replace("_", " ").title()}: {html.escape(time)}</li>'
+                    html_content += '</ul></div>'
+                
+                html_content += '</div>'
+        else:
+            html_content += '<p>Automatikus javítási javaslatok nem elérhetők</p>'
+            html_content += '</div>'  # Close fixes tab div
+            
+        html_content += """
         </div>"""
 
     # Footer
@@ -1086,20 +1432,32 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         </div>
     </div>
     
+    
     <script>
-        function showTab(ev, siteId, tabName) {{
-            const allTabs = document.querySelectorAll(`[id^="${{siteId}}-"]`);
+        function showTab(event, siteId, tabName) {{
+            // Minden tab-content elrejtése az adott site-hoz
+            const allTabs = document.querySelectorAll('[id^="' + siteId + '-"]');
             allTabs.forEach(tab => tab.classList.remove('active'));
             
-            const targetTab = document.getElementById(`${{siteId}}-${{tabName}}`);
+            // A célzott tab megjelenítése
+            const targetTab = document.getElementById(siteId + '-' + tabName);
             if (targetTab) {{
                 targetTab.classList.add('active');
             }}
             
-            const tabButtons = ev.target.parentElement.querySelectorAll('.tab');
+            // Tab gombok aktív állapotának frissítése
+            const tabButtons = event.target.parentElement.querySelectorAll('.tab');
             tabButtons.forEach(btn => btn.classList.remove('active'));
-            ev.target.classList.add('active');
+            event.target.classList.add('active');
+            
+            // Megakadályozzuk az alapértelmezett viselkedést
+            event.preventDefault();
+            return false;
         }}
+    </script>
+    
+    <script>
+        // Chart.js kódok kezdete
 """
 
     # JavaScript chart generálás
@@ -1209,6 +1567,9 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
 """
 
     html_content += """
+        </div>  <!-- Close site-card -->
+    </div>  <!-- Close container -->
+    
     </script>
 </body>
 </html>
