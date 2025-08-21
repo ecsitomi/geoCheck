@@ -3,6 +3,7 @@ import json
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
+from string import Template
 
 
 class AutoFixGenerator:
@@ -29,75 +30,71 @@ class AutoFixGenerator:
         }
         
         self.schema_templates = {
-            "organization": """
-{
+            "organization": Template("""{
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "{company_name}",
-  "url": "{website_url}",
-  "logo": "{logo_url}",
-  "description": "{company_description}",
+  "name": "$company_name",
+  "url": "$website_url",
+  "logo": "$logo_url",
+  "description": "$company_description",
   "address": {
     "@type": "PostalAddress",
-    "streetAddress": "{street_address}",
-    "addressLocality": "{city}",
-    "addressCountry": "{country}"
+    "streetAddress": "$street_address",
+    "addressLocality": "$city",
+    "addressCountry": "$country"
   },
   "contactPoint": {
     "@type": "ContactPoint",
-    "telephone": "{phone}",
+    "telephone": "$phone",
     "contactType": "customer service"
   }
-}""",
+}"""),
             
-            "faq": """
-{
+            "faq": Template("""{
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "{question}",
+      "name": "$question",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "{answer}"
+        "text": "$answer"
       }
     }
   ]
-}""",
+}"""),
             
-            "article": """
-{
+            "article": Template("""{
   "@context": "https://schema.org",
   "@type": "Article",
-  "headline": "{headline}",
+  "headline": "$headline",
   "author": {
     "@type": "Person",
-    "name": "{author_name}"
+    "name": "$author_name"
   },
-  "datePublished": "{publish_date}",
-  "dateModified": "{modified_date}",
-  "description": "{article_description}",
+  "datePublished": "$publish_date",
+  "dateModified": "$modified_date",
+  "description": "$article_description",
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "{article_url}"
+    "@id": "$article_url"
   }
-}""",
+}"""),
             
-            "howto": """
-{
+            "howto": Template("""{
   "@context": "https://schema.org",
   "@type": "HowTo",
-  "name": "{howto_title}",
-  "description": "{howto_description}",
+  "name": "$howto_title",
+  "description": "$howto_description",
   "step": [
     {
       "@type": "HowToStep",
-      "name": "{step_name}",
-      "text": "{step_description}"
+      "name": "$step_name",
+      "text": "$step_description"
     }
   ]
-}"""
+}""")
         }
     
     def generate_all_fixes(self, analysis_result: Dict, url: str) -> Dict:
@@ -312,7 +309,7 @@ class AutoFixGenerator:
                 "type": "Organization Schema",
                 "priority": "high",
                 "benefit": "Céginformációk struktúrált megjelenítése",
-                "code": self.schema_templates["organization"].format(
+                "code": self.schema_templates["organization"].substitute(
                     company_name=domain.replace('www.', '').replace('.com', '').replace('.hu', '').title(),
                     website_url=url,
                     logo_url=f"{url}/logo.png",
@@ -334,7 +331,7 @@ class AutoFixGenerator:
                     "type": "FAQ Schema",
                     "priority": "medium",
                     "benefit": "Kérdés-válasz megjelenés a keresőkben",
-                    "code": self.schema_templates["faq"].format(
+                    "code": self.schema_templates["faq"].substitute(
                         question="Gyakori kérdés?",
                         answer="Részletes válasz a kérdésre."
                     ),
@@ -352,7 +349,7 @@ class AutoFixGenerator:
                 "type": "Article Schema",
                 "priority": "medium",
                 "benefit": "Cikk részletek megjelenése AI rendszerekben",
-                "code": self.schema_templates["article"].format(
+                "code": self.schema_templates["article"].substitute(
                     headline=article_title,
                     author_name="Szerző neve",
                     publish_date="2024-01-01",

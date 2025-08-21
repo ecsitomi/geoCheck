@@ -359,28 +359,121 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         }}
         
         .fix-item {{
-            background: #f8f9fa;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border-left: 3px solid #667eea;
+            background: #ffffff;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }}
+        
+        .fix-item:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }}
         
         .fix-title {{
-            font-weight: 600;
+            font-weight: 700;
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+        }}
+        
+        .fix-title::before {{
+            content: "🔧";
+            margin-right: 8px;
+        }}
+        
+        .fix-description {{
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+            line-height: 1.5;
         }}
         
         .fix-code {{
-            background: #282c34;
-            color: #abb2bf;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: 'Courier New', monospace;
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
             font-size: 0.9rem;
-            margin: 10px 0;
+            margin: 15px 0;
             overflow-x: auto;
+            border: 1px solid #4a5568;
+            position: relative;
+        }}
+        
+        .fix-code::before {{
+            content: "CODE";
+            position: absolute;
+            top: -8px;
+            right: 10px;
+            background: #667eea;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Inter', sans-serif;
+        }}
+        
+        .fix-time {{
+            color: #667eea;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }}
+        
+        .keywords-container {{
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 1px solid #e2e8f0;
+        }}
+        
+        .keywords-title {{
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 12px;
+            font-size: 1rem;
+        }}
+        
+        .keywords-list {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }}
+        
+        .keyword-item {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+            transition: transform 0.2s;
+        }}
+        
+        .keyword-item:hover {{
+            transform: scale(1.05);
+        }}
+        
+        .keyword-count {{
+            background: rgba(255, 255, 255, 0.3);
+            margin-left: 6px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.75rem;
         }}
         
         details {{
@@ -639,10 +732,19 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             # Top kulcsszavak
             top_keywords = keyword_analysis.get('top_keywords', [])
             if top_keywords:
-                html_content += "<h4>Top kulcsszavak:</h4><ul>"
+                html_content += """
+                <div class="keywords-container">
+                    <div class="keywords-title">🔑 Top kulcsszavak</div>
+                    <ul class="keywords-list">"""
                 for word, count in top_keywords[:5]:
-                    html_content += f"<li>{word}: {count}x</li>"
-                html_content += "</ul>"
+                    html_content += f"""
+                        <li class="keyword-item">
+                            {html.escape(word)}
+                            <span class="keyword-count">{count}x</span>
+                        </li>"""
+                html_content += """
+                    </ul>
+                </div>"""
             
             # Tartalom mélység
             html_content += f"""
@@ -731,9 +833,9 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     html_content += f"""
                 <div class="fix-item">
                     <div class="fix-title">{fix.get('issue', 'N/A')}</div>
-                    <div>Hatás: {fix.get('impact', 'N/A')}</div>
+                    <div class="fix-description">Hatás: {fix.get('impact', 'N/A')}</div>
                     <div class="fix-code">{fix.get('fix_code', '')}</div>
-                    <div>Időigény: {fix.get('estimated_time', 'N/A')}</div>
+                    <div class="fix-time">⏱️ Időigény: {fix.get('estimated_time', 'N/A')}</div>
                 </div>
 """
             
@@ -746,7 +848,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                         html_content += f"""
                 <div class="fix-item">
                     <div class="fix-title">{improvement.get('issue', 'N/A')}</div>
-                    <div>{improvement.get('suggestion', '')}</div>
+                    <div class="fix-description">{improvement.get('suggestion', '')}</div>
                 </div>
 """
             
@@ -762,11 +864,17 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     html_content += f"""
                     <div class="fix-item">
                         <div class="fix-title">{schema_fix.get('type', 'N/A')}</div>
-                        <div>Előny: {schema_fix.get('benefit', 'N/A')}</div>
+                        <div class="fix-description">Előny: {schema_fix.get('benefit', 'N/A')}</div>
                     </div>
 """
                 html_content += "</div></details>"
-        else:
+        
+        # Ha az auto_fixes hibás vagy üres, mutassunk alternatív javaslatokat
+        if not auto_fixes or auto_fixes.get('error') or (
+            not auto_fixes.get('critical_fixes') and 
+            not auto_fixes.get('seo_improvements') and 
+            not auto_fixes.get('schema_suggestions')
+        ):
             # Hibaüzenet megjelenítése ha van
             error_msg = auto_fixes.get('error', '') if auto_fixes else ''
             if error_msg:
@@ -775,8 +883,123 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     <strong>Auto-fix hiba:</strong> {html.escape(error_msg)}
                 </div>
 """
-            else:
-                html_content += "<p>Automatikus javítások nem elérhetők</p>"
+            
+            # Implementation guide megjelenítése
+            impl_guide = auto_fixes.get('implementation_guide', {}) if auto_fixes else {}
+            if impl_guide:
+                html_content += "<h3>📋 Implementációs útmutató</h3>"
+                
+                # Prioritási sorrend
+                priority_order = impl_guide.get('priority_order', [])
+                if priority_order:
+                    html_content += "<h4>Prioritási sorrend:</h4><ol>"
+                    for priority in priority_order:
+                        html_content += f"<li>{priority}</li>"
+                    html_content += "</ol>"
+                
+                # Időbecslés
+                timeline = impl_guide.get('estimated_timeline', {})
+                if timeline:
+                    html_content += "<h4>Becsült időigény:</h4><ul>"
+                    for task, time in timeline.items():
+                        task_name = task.replace('_', ' ').title()
+                        html_content += f"<li><strong>{task_name}:</strong> {time}</li>"
+                    html_content += "</ul>"
+                
+                # Tesztelési checklist
+                testing = impl_guide.get('testing_checklist', [])
+                if testing:
+                    html_content += """
+                    <details>
+                        <summary>✅ Tesztelési checklist</summary>
+                        <ul style="margin: 10px 0;">
+"""
+                    for test in testing:
+                        html_content += f"<li>{test}</li>"
+                    html_content += "</ul></details>"
+                
+                # Monitoring
+                monitoring = impl_guide.get('monitoring', [])
+                if monitoring:
+                    html_content += """
+                    <details>
+                        <summary>📊 Monitorozás</summary>
+                        <ul style="margin: 10px 0;">
+"""
+                    for monitor in monitoring:
+                        html_content += f"<li>{monitor}</li>"
+                    html_content += "</ul></details>"
+            
+            # Platform prioritások megjelenítése
+            platform_priorities = site.get('platform_priorities', [])
+            if platform_priorities:
+                html_content += "<h3>🎯 Platform prioritások</h3>"
+                for priority in platform_priorities:
+                    platform_name = priority.get('platform', '').replace('_', ' ').title()
+                    score = priority.get('score', 0)
+                    priority_level = priority.get('priority', 'N/A')
+                    action = priority.get('action', 'N/A')
+                    
+                    # Színkód a pontszám alapján
+                    color_class = badge_class(score)
+                    if 'excellent' in color_class:
+                        priority_color = '#00c851'
+                    elif 'good' in color_class:
+                        priority_color = '#ffc107'
+                    else:
+                        priority_color = '#ff4444'
+                    
+                    html_content += f"""
+                <div class="fix-item" style="border-left-color: {priority_color};">
+                    <div class="fix-title">{platform_name} - {fmt(score, 1)} pont</div>
+                    <div class="fix-description"><strong>Prioritás:</strong> {priority_level}</div>
+                    <div class="fix-description"><strong>Javasolt művelet:</strong> {action}</div>
+                </div>
+"""
+            
+            # Platform suggestions megjelenítése
+            if platform_suggestions and not platform_suggestions.get('error'):
+                common = platform_suggestions.get('common_optimizations', [])
+                if common:
+                    html_content += "<h3>🔧 Általános optimalizációs javaslatok</h3>"
+                    for suggestion in common:
+                        if isinstance(suggestion, dict):
+                            html_content += f"""
+                        <div class="fix-item">
+                            <div class="fix-title">{suggestion.get('suggestion', 'N/A')}</div>
+                            <div class="fix-description"><strong>Típus:</strong> {suggestion.get('type', 'N/A').title()}</div>
+                            <div class="fix-description"><strong>Prioritás:</strong> {suggestion.get('priority', 'N/A').title()}</div>
+                            <div class="fix-description"><strong>Leírás:</strong> {suggestion.get('description', 'N/A')}</div>
+                            <div class="fix-description"><strong>Érintett platformok:</strong> {suggestion.get('platforms', 0)}</div>
+                        </div>
+"""
+                
+                # Platform specifikus javaslatok
+                for platform in ['chatgpt', 'claude', 'gemini', 'bing_chat']:
+                    platform_suggestions_list = platform_suggestions.get(platform, [])
+                    if platform_suggestions_list:
+                        platform_name = platform.replace('_', ' ').title()
+                        html_content += f"""
+                        <details>
+                            <summary>🤖 {platform_name} specifikus javaslatok</summary>
+                            <div style="padding: 10px;">
+"""
+                        for suggestion in platform_suggestions_list[:3]:
+                            if isinstance(suggestion, dict):
+                                html_content += f"""
+                            <div class="fix-item">
+                                <div class="fix-title">{suggestion.get('suggestion', 'N/A')}</div>
+                                <div class="fix-description"><strong>Típus:</strong> {suggestion.get('type', 'N/A').title()}</div>
+                                <div class="fix-description"><strong>Prioritás:</strong> {suggestion.get('priority', 'N/A').title()}</div>
+                                <div class="fix-description"><strong>Leírás:</strong> {suggestion.get('description', 'N/A')}</div>
+                                <div class="fix-code">{suggestion.get('implementation', '')}</div>
+                            </div>
+"""
+                        html_content += "</div></details>"
+            
+            # Ha még mindig nincs tartalom, akkor alapértelmezett üzenet
+            if not impl_guide and not platform_priorities and not (platform_suggestions and platform_suggestions.get('common_optimizations')):
+                html_content += "<p>Specifikus javítási javaslatok nem elérhetők, de az elemzési eredmények alapján készíthető fejlesztési terv.</p>"
             
         html_content += "</div></div>"  # tab-content és site-card bezárása
 
