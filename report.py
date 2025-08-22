@@ -5,6 +5,69 @@ from datetime import datetime
 from typing import Dict, List, Optional
 import html
 
+# --------------------------------
+# Súgó szövegek (Mit jelent melyik mutató?)
+# --------------------------------
+
+HELP_TEXTS = {
+    # Főmutatók
+    "ai_readiness_score": "Összesített 0–100 pontszám amely megmutatja mennyire alkalmas a tartalom AI platformoknak. Tartalmazza: meta adatok, schema markup, mobilbarátság, tartalom minőség, olvashatóság és AI-kompatibilitás mérését.",
+    
+    # Meta adatok
+    "meta_title": "Title tag hossza és optimalizáltsága. Ideális hossz: 30-60 karakter. A title az egyik legfontosabb SEO és AI-readiness tényező.",
+    "meta_description": "Meta description hossza és megléte. Ideális hossz: 120-160 karakter. Rövid összefoglaló a tartalom tartalmáról.",
+    "meta_keywords": "Meta kulcsszavak jelenléte és relevanciája a tartalomhoz képest.",
+    "og_tags": "Open Graph meta tag-ek jelenléte (og:title, og:description, og:image). Fontosak a közösségi média megosztásokhoz.",
+    "twitter_card": "Twitter Card meta tag-ek jelenléte. Optimalizálja a Twitter-en való megjelenést.",
+    
+    # Technikai SEO
+    "crawlability": "Robots.txt státusza, sitemap megléte, HTML méret (ideálisan <500KB). Meghatározza hogy a keresőmotorok mennyire könnyen tudják feldolgozni az oldalt.",
+    "mobile_friendly": "Viewport meta tag, reszponzív képek és mobilbarát design megléte. Ma már alapvető követelmény.",
+    "schema_markup": "Schema.org strukturált adatok típusai és száma. Segíti a keresőmotorokat és AI rendszereket a tartalom megértésében.",
+    "google_validation": "Google strukturált adatok validátor eredménye. Ellenőrzi hogy a schema markup helyes-e.",
+    
+    # Tartalom minőség  
+    "content_quality": "Tartalom mélysége, olvashatóság, kulcsszó sűrűség, szemantikai gazdagság összesített értékelése.",
+    "readability": "Szöveg olvashatósága - mondathossz, szóhasználat komplexitása, bekezdések struktúrája.",
+    "word_count": "Szavak száma a tartalomban. Hosszabb tartalmak általában jobban teljesítenek AI platformokon.",
+    "headings_structure": "H1-H6 címsorok hierarchiája és eloszlása. Jól strukturált tartalom könnyebben feldolgozható.",
+    
+    # AI Enhanced mutatók
+    "ai_content_evaluation": "Valós AI (OpenAI GPT) értékelés a tartalom minőségéről és AI-platformokhoz való alkalmasságról.",
+    "ai_readability": "AI-alapú olvashatóság pontszám amely figyelembe veszi a szemantikai összefüggéseket is.",
+    "ai_factual_check": "AI-alapú faktualitás ellenőrzés - hivatkozások, források, ellenőrizhető állítások megléte.",
+    "platform_compatibility": "Mennyire alkalmas a tartalom különböző AI platformoknak (ChatGPT, Claude, Gemini, Bing Chat).",
+    
+    # Platform specifikus
+    "chatgpt_score": "ChatGPT kompatibilitás: lépésenkénti útmutatók, listák, gyakorlati tartalom preferenciája.",
+    "claude_score": "Claude kompatibilitás: részletes kontextus, hivatkozások, árnyalt magyarázatok preferenciája.",
+    "gemini_score": "Google Gemini kompatibilitás: friss információk, multimédia tartalom, strukturált adatok preferenciája.",
+    "bing_chat_score": "Bing Chat kompatibilitás: források, külső hivatkozások, időszerű információk preferenciája.",
+    
+    # Teljesítmény
+    "pagespeed_mobile": "PageSpeed Insights mobil teljesítmény pontszám (0-100). A gyors betöltés javítja a felhasználói élményt.",
+    "pagespeed_desktop": "PageSpeed Insights asztali teljesítmény pontszám (0-100).",
+    "core_web_vitals": "Google Core Web Vitals mutatók: LCP (betöltés), FID (interaktivitás), CLS (vizuális stabilitás).",
+    
+    # Fejlett mutatók
+    "weighted_average": "AI-metrikák súlyozott átlaga. Nem azonos az AI Readiness-szel, de jól jelzi az AI-barát tartalom minőségét.",
+    "enhancement_status": "Enhanced vs Standard elemzés státusza. Enhanced verzió valós AI értékelést tartalmaz.",
+    "cache_status": "Cache találat információ - ha az eredmény cache-ből származik, gyorsabb de esetleg nem a legfrissebb.",
+    
+    # Hibaüzenetek és státuszok
+    "error_status": "Hiba történt az elemzés során. Részletek a hibaüzenetben.",
+    "analysis_method": "Milyen módszerrel történt az elemzés: valós AI API vagy heurisztikus fallback."
+}
+
+def help_icon(key: str) -> str:
+    """Súgó ikon generálása tooltip-pel"""
+    help_text = HELP_TEXTS.get(key, "")
+    if not help_text:
+        return ""
+    
+    escaped_text = html.escape(help_text)
+    return f'<span class="help-icon ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="{escaped_text}">❓</span>'
+
 # Helper függvények
 def level_from_score(score: float) -> str:
     """AI Readiness szint meghatározása pontszám alapján"""
@@ -99,6 +162,8 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{report_title} - {datetime.now().strftime('%Y-%m-%d')}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -326,6 +391,34 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             color: #666;
             font-size: 0.9rem;
             line-height: 1.5;
+        }}
+        
+        /* Súgó tooltip stílusok */
+        .help-icon {{
+            cursor: help;
+            color: #6c757d;
+            font-size: 0.8rem;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }}
+        
+        .help-icon:hover {{
+            opacity: 1;
+            color: {primary_color};
+        }}
+        
+        /* Bootstrap tooltip testreszabás */
+        .tooltip {{
+            font-size: 0.8rem;
+        }}
+        
+        .tooltip-inner {{
+            max-width: 300px;
+            text-align: left;
+            background-color: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
         }}
         
         .platform-grid {{
@@ -778,7 +871,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         html_content += f"""
                     </div>
                 </div>
-                <div class="score-badge {score_class}">{fmt(score, 0)}</div>
+                <div class="score-badge {score_class}">{fmt(score, 0)}{help_icon("ai_readiness_score")}</div>
             </div>
             
             <!-- Tab navigáció -->
@@ -802,7 +895,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             <div id="{uid}-overview" class="tab-content active">
                 <div class="metrics-grid">
                     <div class="metric-item">
-                        <div class="metric-title">📄 Meta adatok</div>
+                        <div class="metric-title">📄 Meta adatok{help_icon("meta_title")}</div>
                         <div class="metric-value">
 """
         
@@ -823,7 +916,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     </div>
                     
                     <div class="metric-item">
-                        <div class="metric-title">🤖 Crawlability</div>
+                        <div class="metric-title">🤖 Crawlability{help_icon("crawlability")}</div>
                         <div class="metric-value">
                             Robots.txt: {"✅ Engedélyezett" if site.get('robots_txt', {}).get('can_fetch') else "❌ Tiltott"}<br>
                             Sitemap: {"✅ Van" if site.get('sitemap', {}).get('exists') else "❌ Nincs"}<br>
@@ -832,7 +925,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     </div>
                     
                     <div class="metric-item">
-                        <div class="metric-title">📱 Mobile-friendly</div>
+                        <div class="metric-title">📱 Mobile-friendly{help_icon("mobile_friendly")}</div>
                         <div class="metric-value">
                             Viewport: {"✅" if mobile.get('has_viewport') else "❌"}<br>
                             Responsive képek: {"✅" if mobile.get('responsive_images') else "❌"}
@@ -840,7 +933,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     </div>
                     
                     <div class="metric-item {'ai-enhanced' if has_schema_enhanced else ''}">
-                        <div class="metric-title">🏗️ Struktúra {'(Enhanced)' if has_schema_enhanced else ''}</div>
+                        <div class="metric-title">🏗️ Struktúra {'(Enhanced)' if has_schema_enhanced else ''}{help_icon("schema_markup")}</div>
                         <div class="metric-value">
                             H1 elemek: {meta_data.get('h1_count', 0)}<br>
                             Heading hierarchia: {"✅" if meta_data.get('heading_hierarchy_valid') else "⚠️"}<br>
@@ -907,7 +1000,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 
                 <div class="metrics-grid">
                     <div class="metric-item ai-enhanced">
-                        <div class="metric-title">🎯 AI Pontszámok</div>
+                        <div class="metric-title">🎯 AI Pontszámok{help_icon("ai_content_evaluation")}</div>
                         <div class="metric-value">
                             Overall AI Score: {fmt(ai_content_eval.get('overall_ai_score', 0), 1)}/100<br>"""
             
@@ -923,7 +1016,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             if ai_readability and not ai_readability.get('error'):
                 html_content += f"""
                     <div class="metric-item ai-enhanced">
-                        <div class="metric-title">📖 AI Olvashatóság</div>
+                        <div class="metric-title">📖 AI Olvashatóság{help_icon("ai_readability")}</div>
                         <div class="metric-value">
                             Clarity: {fmt(ai_readability.get('clarity_score', 0), 1)}/100<br>
                             Engagement: {fmt(ai_readability.get('engagement_score', 0), 1)}/100<br>
@@ -936,7 +1029,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             if ai_factual and not ai_factual.get('error'):
                 html_content += f"""
                     <div class="metric-item ai-enhanced">
-                        <div class="metric-title">✅ Faktualitás</div>
+                        <div class="metric-title">✅ Faktualitás{help_icon("ai_factual_check")}</div>
                         <div class="metric-value">
                             Factual Score: {fmt(ai_factual.get('factual_score', 0), 1)}/100<br>
                             Citations: {ai_factual.get('accuracy_indicators', {}).get('citations_present', 0)}<br>
@@ -1032,7 +1125,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                         <div class="ai-metric-value">{level_from_score(score)}</div>
                     </div>
                     <div class="ai-metric">
-                        <div class="ai-metric-label">AI Weighted</div>
+                        <div class="ai-metric-label">AI Weighted{help_icon("weighted_average")}</div>
                         <div class="ai-metric-value">{fmt(weighted_avg, 1)}</div>
                     </div>
                 </div>
@@ -1071,7 +1164,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             
             html_content += f"""
                     <div class="metric-item">
-                        <div class="metric-title">📖 Olvashatóság</div>
+                        <div class="metric-title">📖 Olvashatóság{help_icon("readability")}</div>
                         <div class="metric-value">
                             Szó szám: {readability.get('word_count', 0)}<br>
                             Mondatok: {readability.get('sentence_count', 0)}<br>
@@ -1139,7 +1232,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     </div>
                     
                     <div class="metric-item">
-                        <div class="metric-title">📈 Összesített minőség</div>
+                        <div class="metric-title">📈 Összesített minőség{help_icon("content_quality")}</div>
                         <div class="metric-value">
                             <strong>Teljes pontszám: {fmt(content_quality.get('overall_quality_score', 0), 1)}/100</strong>
                         </div>
@@ -1154,7 +1247,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             
             <!-- Platformok tab -->
             <div id="{uid}-platforms" class="tab-content">
-                <h3>🎯 Platform kompatibilitás</h3>"""
+                <h3>🎯 Platform kompatibilitás{help_icon("platform_compatibility")}</h3>"""
         
         # Platform Analysis adatok megjelenítése
         if platform_analysis:
@@ -1174,7 +1267,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 html_content += f"""
                     <div class="platform-card {'ai-enhanced' if ai_enhanced else ''}">
                         <div class="platform-name">
-                            {platform_name.upper()} {'🤖' if ai_enhanced else ''}
+                            {platform_name.upper()} {'🤖' if ai_enhanced else ''}{help_icon(f"{platform_name.lower()}_score")}
                         </div>
                         <div class="platform-score">{fmt(platform_score, 0)}</div>
                         <div class="platform-level">{optimization_level}</div>
@@ -1605,6 +1698,19 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
 """
 
     html_content += """
+    
+    // Tooltip-ek inicializálása
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                html: true,
+                placement: 'top',
+                trigger: 'hover focus'
+            });
+        });
+    });
+    
     </script>
     </div>  <!-- Close container -->
 </body>
