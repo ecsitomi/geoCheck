@@ -1,264 +1,129 @@
-# geoCheck — Generative Engine Optimization (GEO) Checker
+# GEOcheck – Website GEO (Generative Engine Optimization) Audit  
+**Streamlit app vállalkozóknak, döntéshozóknak és fejlesztő csapatoknak**
 
-**Röviden:** a geoCheck egy elemző eszköz, amely egy megadott webcikket / tartalmat feldolgoz és **LLM‑ek, kereső‑asszisztensek és RAG rendszerek** szempontjából kiértékeli. Célja, hogy
-
-* mennyire **könnyen emészthető** a szöveg a modellek számára,
-* mennyire **szabványos és gépileg olvasható** (metaadatok, schema, szekcionálás),
-* mennyire **idézhető és megbízható** (források, dátumok),
-* és milyen **automatizálható javításokat** érdemes elvégezni.
-
-> **Megjegyzés:** A dokumentáció a projektfájlok ( `app.py`, `main.py`, `ai_metrics.py`, `content_analyzer.py`, `platform_optimizer.py`, `auto_fixes.py`, `report.py`, `advanced_reporting.py`, `requirements.txt` ) alapján épül fel. A függvénynevek példák – a modulok felelősségét és a mért eredmények értelmét írjuk le részletesen.
+Ez a README a feltöltött kód ( `/advanced_reporting.py`, `/ai_evaluator.py`, `/ai_metrics.py`, `/app.py`, `/auto_fixes.py`, `/cache_manager.py`, `/config.py`, `/content_analyzer.py`, `/main.py`, `/platform_optimizer.py`, `/report.py`, `/schema_validator.py` ) alapján készült. A dokumentum célja, hogy **üzleti döntéshozók számára is érthetően** bemutassa az alkalmazás értékét, működését és az egyes mutatók mögötti logikát – valamint **konkrét útmutatót adjon a 100% közeli eredmények eléréséhez**.
 
 ---
 
-## Fő funkciók
+## Tartalomjegyzék
 
-* **URL / nyers szöveg feldolgozása** és tartalomkinyerés
-* **Tokenizálás és szövegszerkezet-elemzés** (címek hierarchiája, bekezdéshossz, felsorolások, táblázatok)
-* **Olvashatóság és komplexitás** (Flesch‑szerű mutatók, mondathossz, szakzsargon arány)
-* **GEO‑metrikák** (pl. Embeddability, Schema Coverage, Headings Coverage, Citations, Q\&A jelenlét, Duplicate ratio, Chunk-fit)
-* **Platform‑specifikus ellenőrzések** (OpenGraph/Twitter meta, JSON‑LD/Schema.org, robots, sitemap)
-* **Automatikus javítási javaslatok** (konkrét, bemásolható patchek / sablonok)
-* **Jelentésgenerálás** (Markdown/HTML/CSV/JSON), „GEO Score” és részpontszámok
-* **CLI és (opcionális) UI** futtatás
+1. [Mi az a GEO és miért fontos?](#mi-az-a-geo-és-miért-fontos)  
+2. [Fő funkciók áttekintése](#fő-funkciók-áttekintése)  
+3. [Rendszer-architektúra (modulok és felelősségek)](#rendszer-architektúra-modulok-és-felelősségek)  
+4. [Telepítés és futtatás](#telepítés-és-futtatás)  
+5. [Használat lépésről lépésre](#használat-lépésről-lépésre)  
+6. [Pontozás és módszertan (hogyan számolunk?)](#pontozás-és-módszertan-hogyan-számolunk)  
+7. [Mutatók magyarázata + tooltip szövegek](#mutatók-magyarázata--tooltip-szövegek)  
+8. [Hogyan érjünk el 100%-ot? — gyakorlati checklisták](#hogyan-érjünk-el-100--ot--gyakorlati-checklisták)  
+9. [Riportok és export](#riportok-és-export)  
+10. [Cache, teljesítmény és korlátok](#cache-teljesítmény-és-korlátok)  
+11. [Biztonság, költségek és megfelelés](#biztonság-költségek-és-megfelelés)  
+12. [Gyakori kérdések](#gyakori-kérdések)
 
 ---
 
-## Telepítés
+## Mi az a GEO és miért fontos?
+
+**GEO (Generative Engine Optimization)**: tartalom és technikai optimalizálás **AI-alapú keresők** és **generatív asszisztensek** (pl. ChatGPT, Claude, Gemini, Bing Copilot) számára.  
+Míg az SEO a klasszikus találati oldalakat célozza, a GEO célja, hogy **a nagy nyelvi modellek könnyen értelmezhető, megbízható, jól hivatkozott és strukturált tartalmat találjanak az Ön oldalán**, és ebből minőségi válaszokat tudjanak adni a felhasználóknak.
+
+**Üzleti érték:**  
+- Több **AI-csatornából érkező forgalom** és márkaemlítés  
+- **Magasabb konverzió**: a jobb strukturáltság és bizalomépítő elemek miatt  
+- **Gyorsabb tartalomfejlesztés**: világos hiánylisták és automatikus javítási javaslatok
+
+---
+
+## Fő funkciók áttekintése
+
+- **Tömeges URL elemzés** (Streamlit UI)  
+- **Technikai ellenőrzések:** robots.txt, sitemap, mobilbarát jelölések, H1 számlálás stb.  
+- **Tartalom-minőség elemzés:** címsor-hierarchia, listák/táblázatok, Q&A-blokkok, frissesség, hivatkozások  
+- **AI-alapú értékelés (OpenAI):** olvashatóság, faktualitás, AI-barátság  
+- **Platform-kompatibilitás pontszámok:** ChatGPT / Claude / Gemini / Bing  
+- **Schema.org validáció és „Rich Results” esély** (Google ellenőrzéssel, opcionálisan Selenium)  
+- **Auto-fixes (javaslatmotor):** meta cím/description sablonok, schema ajánlások, tartalmi és technikai javítások, **priorizált feladatlista**  
+- **Haladó riportok:** executive summary, technikai audit, website elemzés  
+- **Exportok:** HTML és CSV riportok  
+- **Cache és ismételhetőség:** 1 órás TTL, statisztika és „Cache tisztítás” gomb
+
+---
+
+## Rendszer-architektúra (modulok és felelősségek)
+
+- `app.py` – **Streamlit UI**, beállítások (cache, enhanced mód), futtatás, állapotjelzés  
+- `main.py` – **GEOAnalyzer** és URL-feldolgozás (robots.txt, HTTP letöltés, BeautifulSoup), pipeline-vezérlés  
+- `content_analyzer.py` – **tartalom-minőség**: címsorok, szöveg, listák, táblázatok, olvashatóság, Q&A formátum  
+- `ai_metrics.py` – **AI-specifikus metrikák**: enhanced struktúra, QA-score, entity/freshness/citation jelek, „AI-friendliness”  
+- `ai_evaluator.py` – **OpenAI-alapú** olvashatóság- és faktualitás-értékelés + szemantikus relevancia (API kulccsal)  
+- `platform_optimizer.py` – **MultiPlatformGEOAnalyzer**: jel-alapú és (ha elérhető) ML-súlyozás (sklearn), ChatGPT/Claude/Gemini/Bing pontok  
+- `schema_validator.py` – **schema.org** típusok felismerése, teljesség/komplettség, Google validáció (rich results), opcionálisan Selenium  
+- `auto_fixes.py` – **javítási javaslatok**: meta sablonok, schema-bővítés, tartalom-optimalizáció, technikai fixek, implementációs guide, priorizálás  
+- `advanced_reporting.py` – **riport-összesítő**: score eloszlás, platform-teljesítmény, csatornánkénti hiányok és lehetőségek  
+- `report.py` – **HTML/CSV** generálás + **tooltip szövegkészlet**  
+- `cache_manager.py` – fájl-alapú cache (TTL: 1 óra), statisztika, tisztítás  
+- `config.py` – API kulcsok betöltése: `.env` → környezeti változó → `st.secrets` fallback
+
+---
+
+## Telepítés és futtatás
 
 ### Követelmények
+- **Python 3.10+**  
+- Ajánlott: virtuális környezet
 
-* **Python 3.10+** (ajánlott)
-* `pip` és a projekt gyökérben található `requirements.txt` csomagjai
-* **API kulcsok beállítása** (opcionális, de ajánlott):
-  * `GOOGLE_API_KEY` - PageSpeed Insights API-hoz
-  * `OPENAI_API_KEY` - AI tartalom értékeléshez
-
-### API kulcsok konfigurálása
-
-A rendszer két módon kezeli az API kulcsokat **prioritási sorrendben**:
-
-1. **`.env` fájl** (elsődleges):
+### Telepítés
 ```bash
-# .env fájl a projekt gyökérben
-GOOGLE_API_KEY=your_google_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
+pip install -U streamlit requests beautifulsoup4 python-dotenv openai
+# Opcionális (platform score-hoz ML):
+pip install -U scikit-learn numpy
+# Opcionális (Google Rich Results ellenőrzéshez):
+pip install -U selenium
 ```
 
-2. **Streamlit Secrets** (fallback):
-```toml
-# .streamlit/secrets.toml fájl
-GOOGLE_API_KEY = "your_google_api_key_here"
-OPENAI_API_KEY = "your_openai_api_key_here"
+### Környezeti változók
+Hozz létre `.env` fájlt (vagy használd a Streamlit `secrets`-et):
+
+```env
+OPENAI_API_KEY=sk-...
+GOOGLE_API_KEY=AIza...   # PageSpeed/egyéb Google végpontokhoz és validációkhoz
 ```
 
-**Jegyzet**: Ha nincs beállítva API kulcs, az alkalmazás fallback algoritmusokkal működik csökkentett funkcionalitással.
-
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
+> A `config.py` először `.env`-ből olvas, majd env-ből, végül `st.secrets` fallback.
 
 ### Futtatás
-
-**CLI:**
-
 ```bash
-python main.py --url "https://pelda.hu/cikk" --out reports/
-# vagy
-python main.py --text-file input.txt --model gpt-4o-mini --format md
-```
-
-**Streamlit Web Interface:**
-
-```bash
-# Streamlit alkalmazás indítása
 streamlit run app.py
 ```
 
-A web interface automatikusan felismeri az API kulcsok jelenlétét és a konfigurációs státuszt megjeleníti az oldalsávban.
+---
 
-**CLI használat:**
+## Használat lépésről lépésre
 
-```bash
-python main.py --url "https://pelda.hu/cikk" --out reports/
-# vagy
-python main.py --text-file input.txt --model gpt-4o-mini --format md
-```
-
-Argumentumok (tipikus):
-
-* `--url` vagy `--text-file` – bemeneti forrás
-* `--model` – modellnév (ha releváns)
-* `--out` – kimeneti mappa
-* `--format` – `md` | `html` | `json` | `csv`
-* `--platform` – célplatform‑checks: `openai, google, perplexity, x` (vagy `all`)
+1. **Indítsd az appot**, illeszd be az URL(eke)t (több sorban is lehet).  
+2. Oldalt válaszd ki:  
+   - **Use Cache** (gyorsabb ismétlések)  
+   - **Enhanced / AI metrikák** (OpenAI kulccsal)  
+   - **Schema Enhanced + Google validation** (opcionális Selenium)  
+3. Kattints **„Elemzés”**.  
+4. Nézd meg a **Topline pontszámokat**, platform-score-okat, technikai és tartalmi hibákat.  
+5. Töltsd le a **HTML/CSV riportot**, vagy használd az **Auto-fixes** javaslatokat a javításhoz.
 
 ---
 
-## Kimenetek és pontszámok értelmezése
+## Pontozás és módszertan (hogyan számolunk?)
 
-### Összesített GEO Score (0–100)
+A végső **AI Readiness Score (0–100)** három komponensből áll:
 
-A fő mutató; súlyozott átlag az alábbi részeredményekből. Ajánlott skála:
+- **Hagyományos + Tartalmi jelek (kb. 40%)**  
+  Címsorok, meta elemek, olvashatóság, listák/táblázatok, frissesség, hivatkozások stb.
+- **ML/Heurisztikus jelek (kb. 40%)**  
+  Több jel súlyozott kombinációja (Q&A-nyomok, entitások, strukturáltság, interaktív elemek stb.).  
+  (Ha a `scikit-learn` elérhető, a súlyozás és validáció kifinomultabb.)
+- **AI-értékelés (kb. 20%)**  
+  OpenAI-alapú olvashatóság, faktualitás és AI-barátság értékelések.
 
-* **90–100**: kiváló – asszisztens‑barát, szabványos, bőven hivatkozott
-* **75–89**: jó – néhány finomhangolással optimális
-* **60–74**: közepes – több szerkezeti/metaadat javítás indokolt
-* **0–59**: gyenge – jelentős átalakítás szükséges
+**Platform pontok (ChatGPT / Claude / Gemini / Bing):**  
+„Hybrid” módszerrel számítódnak (hagyományos + ML jelek kombinációja), **platform-specifikus preferenciákkal** (pl. Q&A és források → Bing, mély tartalom → Claude, frissesség & mobilbarát → Gemini, jól strukturált FAQ és lépéslista → ChatGPT).
 
-### Részpontszámok
-
-1. **Content Clarity (0–100)**
-   *Mit méri:* mondathossz-medián, Flesch‑szerű olvashatóság, redundancia, „filler” arány.
-   *Mi számít jónak:* 14–22 szó/mondatátlag, rövid bekezdések, aktív igealakok, világos definíciók.
-
-2. **Structure & Chunking (0–100)**
-   *Mit méri:* H1–H3 lefedettség, szekciók azonosítói (ankorok), felsorolások/táblák aránya, **Chunk‑fit** (egy szakasz belefér‑e tipikus kontextusablakba).
-   *Jó érték:* minden szakasz ≤ 600–800 token, egyértelmű címkék, kevés „árva” mondat.
-
-3. **Machine‑Readability (0–100)**
-   *Mit méri:* cím/description meta, **OpenGraph**, **Twitter**, **schema.org JSON‑LD** típusok (Article, FAQPage, HowTo), `robots.txt`, `sitemap.xml`, `hreflang`.
-   *Jó érték:* teljes meta‑készlet, 1–2 JSON‑LD blokk, konzisztensek a látható tartalommal.
-
-4. **Evidence & Citations (0–100)**
-   *Mit méri:* linkelt források száma/minősége, dátumok jelenléte, számszerű állítások egységekkel, táblázatos adatok.
-   *Jó érték:* minden fontos állításnak van hivatkozása; friss (≤12 hónap) dátumok.
-
-5. **Q\&A / FAQ & Task‑orientation (0–100)**
-   *Mit méri:* kérdés‑válasz blokkok, lépésről‑lépésre **HowTo**, definíció‑szótár.
-   *Jó érték:* 3–10 releváns Q\&A, rövid válaszok, HowTo lépések számozva.
-
-6. **Duplication & Canonical (0–100)**
-   *Mit méri:* duplikált bekezdések, kanonikus URL jelenléte, címke‑inkonzisztenciák.
-   *Jó érték:* nincs duplikátum, `link rel="canonical"` beállítva.
-
-> **„Chunk‑fit”**: a szekciók token‑becslését hasonlítja az általad célzott modellek kontextusablakához (pl. 8k / 32k). Ha egy fejezet > kontextus 70–80%-a, bontás javasolt.
-
----
-
-## Modulok és (tipikus) felelősségük
-
-### `content_analyzer.py`
-
-**Feladat:** nyers HTML/Markdown → tiszta, strukturált szöveg + szerkezeti jelölők.
-
-Lehetséges fő függvények / osztályok:
-
-* `extract_from_url(url) → Content` – HTML letöltés, `<main>`/`<article>` preferencia, boilerplate szűrés
-* `extract_from_markdown(md_str) → Content`
-* `segment(content) → list[Section]` – címsorok alapján szekcionálás, táblázatok és kódrészletek megőrzése
-* `estimate_tokens(text, model) → int` – tiktoken/szabályalapú becslés
-* `readability_metrics(text) → dict` – átlagos mondathossz, Flesch‑mutatók, passzív szerkezet arány
-
-**Kimenet (példa `Content`):**
-
-```json
-{
-  "url": "https://pelda.hu/cikk",
-  "title": "Példa cikk",
-  "sections": [
-    {"id": "bevezetes", "h": 2, "text": "...", "tokens": 312},
-    {"id": "eredmenyek", "h": 2, "text": "...", "tokens": 541}
-  ],
-  "meta": {"og": {...}, "twitter": {...}, "json_ld": [...], "canonical": "..."}
-}
-```
-
-### `ai_metrics.py`
-
-**Feladat:** GEO‑specifikus metrikák kiszámítása a `Content` alapján.
-
-Kulcsmetrikák (tipikus):
-
-* **EmbeddabilityScore** – szekciók átlagos hossza, szerkezet, listák/definíciók jelenléte
-* **SchemaCoverage** – JSON‑LD típusok és kulcsmezők aránya
-* **HeadingsCoverage** – H‑hierarchia, elnevezett horgonyok
-* **CitationScore** – hivatkozások és dátumok sűrűsége
-* **QA/HowToScore** – Q\&A/HowTo blokkok felismerése
-* **DuplicationScore** – ismétlődő bekezdések aránya
-* **ChunkFitScore(model\_ctx)** – token‑becslés vs. kontextus
-
-Tipikus API:
-
-```python
-scores = compute_all_metrics(content, target_models=["gpt-4o", "sonnet-3.5"])
-# {"geo": 82.4, "clarity": 78, "structure": 85, ...}
-```
-
-### `platform_optimizer.py`
-
-**Feladat:** platform‑specifikus megfelelőség ellenőrzése és ajánlások.
-
-Példák:
-
-* **OpenGraph/Twitter** – `og:title`, `og:description`, `og:url`, `twitter:card` …
-* **Schema.org** – `Article`, `BlogPosting`, `FAQPage`, `HowTo` minimál mezők
-* **Robots & Sitemap** – alap tiltások, `sitemap.xml` elérhetőség, `hreflang`
-* **Canonical & Duplicates** – kanonikus címke és tartalom‑duplikáció
-
-Kimenet: „pass/warn/fail” tételes lista + rövid indoklás.
-
-### `auto_fixes.py`
-
-**Feladat:** célzott, bemásolható javítási javaslatok generálása.
-
-Példák:
-
-* **Tartalmi szétbontás** – túl hosszú szekciók darabolása H3‑akra
-* **FAQ generálás** – 5–8 reprezentatív kérdés‑válasz blokk
-* **Schema sablonok** – `FAQPage`, `HowTo`, `Article` JSON‑LD minták
-* **Meta sablonok** – `<title>`, `meta description`, OpenGraph/Twitter
-* **Források** – hiányzó állításokhoz forrástípus‑lista (tanulmány, hivatalos stat, dokumentáció)
-
-Kimenet: `Fix` objektumok listája (`title`, `why`, `how`, `snippet`).
-
-### `report.py` és `advanced_reporting.py`
-
-**Feladat:** emberi olvasásra optimalizált jelentés és gép‑barát exportok.
-
-* **`report.py`** – Markdown/HTML áttekintés, „trafiklámpás” (✅/⚠️/❌) státuszok, táblázatok
-* **`advanced_reporting.py`** – CSV/JSON összesítők több futásról (trendek), modell‑összehasonlítás
-
-Példa kimenet (MD):
-
-```md
-# GEO Score: 82/100
-- Clarity: 78  
-- Structure & Chunking: 85  
-- Machine‑Readability: 80  
-- Evidence & Citations: 72  
-- Q&A/HowTo: 92
-
-Top 5 teendő: 1) Canonical beállítás, 2) 3 hosszú szekció bontása, 3) FAQ JSON‑LD, 4) 6 állítás forrásolása, 5) 2 hiányzó OG meta.
-```
-
-### `app.py`
-
-**Feladat:** egyszerű UI / szerver (pl. Streamlit / Flask) a fenti komponensekhez.
-
-Tipikus folyam:
-
-1. Bemenet (URL / szöveg) → 2. Elemzés (`content_analyzer`) → 3. Metrikák (`ai_metrics`) → 4. Platform‑checks → 5. Javítások → 6. Jelentés
-
-### `main.py`
-
-**Feladat:** CLI belépési pont, argumentumkezelés, futtatási sorrend, hibakezelés.
-
----
-
-## Példa riport‑mezők magyarázata
-
-| Mező                          | Jelentés                                       | Mi számít jónak         |
-| ----------------------------- | ---------------------------------------------- | ----------------------- |
-| `geo_score`                   | Összesített pont a súlyozott részpontszámokból | ≥ 85                    |
-| `clarity.readability`         | Flesch‑szerű olvashatóság                      | 60–80                   |
-| `clarity.avg_sentence_len`    | Átlagos szavak/mondatátlag                    | 14–22                   |
-| `structure.headings_coverage` | H1–H3 lefedettség                              | ≥ 0.8                   |
-| `structure.chunk_fit_8k`      | 8k kontextus‑kompatibilis szekciók aránya      | ≥ 0.9                   |
-| `machine.jsonld_types`        | JSON‑LD típusok száma/használata               | ≥ 1 (Article/FAQ/HowTo) |
-| `machine.opengraph_ok`        | OG/Twitter meta teljesség                      | ✅                       |
-| `evidence.citation_density`   | Hivatkozássűrűség                              | ≥ 1/300–500 szó         |
-| `qa.count`                    | FAQ/QA párok száma                             | 5–10                    |
-| `dup.duplicate_ratio`         | Duplikáció aránya                              | ≤ 5%                    |
+> A `report.py` segítségével a pontok **tooltip** magyarázattal jelennek meg a felületen és az exportban is.
