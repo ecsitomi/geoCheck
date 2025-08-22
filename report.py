@@ -2,7 +2,7 @@ import json
 import csv
 import re
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import html
 
 # --------------------------------
@@ -53,6 +53,10 @@ HELP_TEXTS = {
     "cls": "Cumulative Layout Shift - Vizuális stabilitás mérése. Ideális: <0.1, Javítandó: 0.1-0.25, Gyenge: >0.25",
     "pagespeed_performance": "PageSpeed Insights teljesítmény pontszám. 90-100: Jó, 50-89: Javítandó, 0-49: Gyenge",
     "pagespeed_seo": "PageSpeed Insights SEO pontszám. A technikai SEO tényezők értékelése.",
+    
+    # AI Összefoglaló
+    "ai_summary": "OpenAI GPT-4 által generált intelligens összefoglaló az elemzési eredményekről. Átfogó értékelés és konkrét fejlesztési javaslatok.",
+    "ai_recommendations": "OpenAI GPT-4 által készített konkrét, végrehajtható javaslatok a GEO (Generative Engine Optimization) eredmények javítására.",
     
     # Fejlett mutatók
     "weighted_average": "AI-metrikák súlyozott átlaga. Nem azonos az AI Readiness-szel, de jól jelzi az AI-barát tartalom minőségét.",
@@ -172,12 +176,20 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         return
 
     # Enhanced analysis detektálása
-    detection_result = detect_enhanced_analysis(data)
+    # Ha a data dict és tartalmaz results kulcsot, akkor azt használjuk
+    if isinstance(data, dict) and 'results' in data:
+        results_data = data['results']
+    elif isinstance(data, list):
+        results_data = data
+    else:
+        results_data = [data] if isinstance(data, dict) else []
+        
+    detection_result = detect_enhanced_analysis(results_data)
     is_enhanced = detection_result["is_enhanced"]
     enhancement_stats = detection_result["enhancement_stats"]
     
     # Valid results
-    valid_results = [r for r in data if isinstance(r, dict) and 'ai_readiness_score' in r and 'error' not in r]
+    valid_results = [r for r in results_data if isinstance(r, dict) and 'ai_readiness_score' in r and 'error' not in r]
     avg_score = sum(r['ai_readiness_score'] for r in valid_results) / len(valid_results) if valid_results else 0
     
     # Report címek és stílus
@@ -429,6 +441,35 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         .metric-item.ai-enhanced {{
             background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
             border-left-color: #ff6b6b;
+        }}
+        
+        /* AI Összefoglaló speciális stílusok */
+        .ai-summary-card {{
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-left-color: #2196f3;
+            grid-column: 1 / -1; /* Teljes szélesség */
+        }}
+        
+        .ai-recommendations-card {{
+            background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+            border-left-color: #9c27b0;
+            grid-column: 1 / -1; /* Teljes szélesség */
+        }}
+        
+        .ai-summary-content, .ai-recommendations-content {{
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }}
+        
+        .ai-summary-content::-webkit-scrollbar, .ai-recommendations-content::-webkit-scrollbar {{
+            width: 6px;
+        }}
+        
+        .ai-summary-content::-webkit-scrollbar-thumb, .ai-recommendations-content::-webkit-scrollbar-thumb {{
+            background: rgba(0,0,0,0.2);
+            border-radius: 3px;
         }}
         
         .metric-title {{
@@ -853,7 +894,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
 """
 
     # Minden oldal feldolgozása
-    for idx, site in enumerate(data):
+    for idx, site in enumerate(results_data):
         if not isinstance(site, dict):
             continue
             
@@ -909,7 +950,8 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             
             <!-- Tab navigáció -->
             <div class="tabs">
-                <button class="tab active" onclick="showTab(event, '{uid}', 'overview')" title="URL site és html adatok ellenőrzése">📊 HTML adatok</button>
+                <button class="tab active" onclick="showTab(event, '{uid}', 'ai-summary')" title="OpenAI GPT-4 által készített intelligens összefoglaló és javaslatok">🧠 AI Összefoglaló</button>
+                <button class="tab" onclick="showTab(event, '{uid}', 'overview')" title="URL site és html adatok ellenőrzése">📊 HTML adatok</button>
                 <button class="tab" onclick="showTab(event, '{uid}', 'ai-metrics')" title="URL tartalmának AI metrikai mérése ">🤖 AI Metrikák</button>"""
         
         # Enhanced tabok hozzáadása
@@ -925,8 +967,51 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 <button class="tab" onclick="showTab(event, '{uid}', 'fixes')" title="URL javítások és javaslatok">🔧 Javítások</button>
             </div>
             
+            <!-- AI Összefoglaló tab -->
+            <div id="{uid}-ai-summary" class="tab-content active">
+                <div class="metrics-grid">
+"""
+
+        # AI összefoglaló generálása
+        summary = "Az AI összefoglaló még nincs generálva. Kattints a 'Frissítés' gombra az AI elemzéshez."
+        recommendations = "Az AI javaslatok még nincsenek elkészítve. Az AI összefoglaló generálása után itt jelennek meg a konkrét fejlesztési javaslatok."
+        
+        # Opcionálisan próbáljuk meg generálni (csak ha van API kulcs)
+        try:
+            import os
+            force_generation = os.getenv("FORCE_AI_GENERATION") == "1"
+            
+            if (os.getenv("OPENAI_API_KEY") and 
+                (force_generation or not json_file.startswith('test_'))):
+                from ai_summary import generate_ai_summary_from_file
+                summary, recommendations = generate_ai_summary_from_file(json_file)
+        except Exception as e:
+            # Ha hiba van, marad az alapértelmezett szöveg
+            if force_generation:
+                summary = f"Hiba az AI összefoglaló generálása során: {str(e)}"
+                recommendations = "Az AI javaslatok generálása sikertelen volt."
+        
+        html_content += f"""
+                    <div class="metric-item ai-summary-card">
+                        <div class="metric-title">
+                            📝 AI Összefoglaló{help_icon("ai_summary")}                            
+                        </div>
+                        <div class="metric-value ai-summary-content" id="ai-summary-content-{uid}">
+                            {html.escape(summary).replace(chr(10), '<br>')}
+                        </div>
+                    </div>
+                    
+                    <div class="metric-item ai-recommendations-card">
+                        <div class="metric-title">💡 AI Javaslatok{help_icon("ai_recommendations")}</div>
+                        <div class="metric-value ai-recommendations-content" id="ai-recommendations-content-{uid}">
+                            {html.escape(recommendations).replace(chr(10), '<br>')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Áttekintés tab -->
-            <div id="{uid}-overview" class="tab-content active">
+            <div id="{uid}-overview" class="tab-content">
                 <div class="metrics-grid">
                     <div class="metric-item">
                         <div class="metric-title">📄 Meta adatok{help_icon("meta_title")}</div>
@@ -971,7 +1056,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                         <div class="metric-value">
                             H1 elemek: {meta_data.get('h1_count', 0)}<br>
                             Heading hierarchia: {"✅" if meta_data.get('heading_hierarchy_valid') else "⚠️"}<br>
-                            Schema típusok: {sum(schema_data.get('count', {}).values())}<br>"""
+                            Schema elemek: {schema_data.get('count', 0)}<br>"""
         
         # Enhanced schema info
         if has_schema_enhanced:
@@ -1806,6 +1891,29 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             event.preventDefault();
             return false;
         }}
+        
+        function refreshAISummary(siteId) {{
+            const summaryElement = document.getElementById('ai-summary-content-' + siteId);
+            const recommendationsElement = document.getElementById('ai-recommendations-content-' + siteId);
+            
+            if (summaryElement) {{
+                summaryElement.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner-border spinner-border-sm" role="status"></div> AI összefoglaló generálása...</div>';
+            }}
+            if (recommendationsElement) {{
+                recommendationsElement.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner-border spinner-border-sm" role="status"></div> AI javaslatok generálása...</div>';
+            }}
+            
+            // Itt később AJAX hívás lesz egy AI endpoint-hoz
+            // Egyelőre egy placeholder üzenet
+            setTimeout(() => {{
+                if (summaryElement) {{
+                    summaryElement.innerHTML = 'Az AI összefoglaló frissítése még nem implementált. Ez egy jövőbeli funkció lesz, amely valós időben frissíti az AI elemzést.';
+                }}
+                if (recommendationsElement) {{
+                    recommendationsElement.innerHTML = 'Az AI javaslatok frissítése még nem implementált. A funkció egy külön API endpoint-ot fog használni az OpenAI-val való kommunikációhoz.';
+                }}
+            }}, 2000);
+        }}
     </script>
     
     <script>
@@ -1813,7 +1921,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
 """
 
     # JavaScript chart generálás
-    for idx, site in enumerate(data):
+    for idx, site in enumerate(results_data):
         if not isinstance(site, dict):
             continue
             
@@ -1824,7 +1932,15 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         headings = meta_data.get("headings", {})
         
         schema_data = site.get("schema", {})
-        schema_count = schema_data.get("count", {})
+        schema_count_raw = schema_data.get("count", {})
+        
+        # Schema count lehet int vagy dict típusú - normalizáljuk
+        if isinstance(schema_count_raw, int):
+            schema_count = {"Schema elemek": schema_count_raw} if schema_count_raw > 0 else {}
+        elif isinstance(schema_count_raw, dict):
+            schema_count = schema_count_raw
+        else:
+            schema_count = {}
         
         # Headings chart
         if headings:
@@ -1964,8 +2080,16 @@ def generate_csv_export(json_file: str = "ai_readiness_full_report.json",
         print(f"❌ Hiba: {e}")
         return
     
+    # Data normalizálás
+    if isinstance(data, dict) and 'results' in data:
+        results_data = data['results']
+    elif isinstance(data, list):
+        results_data = data
+    else:
+        results_data = [data] if isinstance(data, dict) else []
+    
     # Enhanced felismerés
-    detection_result = detect_enhanced_analysis(data)
+    detection_result = detect_enhanced_analysis(results_data)
     is_enhanced = detection_result["is_enhanced"]
     
     # Enhanced fieldnames
@@ -1985,7 +2109,7 @@ def generate_csv_export(json_file: str = "ai_readiness_full_report.json",
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         
-        for site in data:
+        for site in results_data:
             if not isinstance(site, dict):
                 continue
                 

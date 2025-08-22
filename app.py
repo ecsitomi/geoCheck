@@ -160,7 +160,7 @@ with col2:
                 )
                 
                 progress_bar.progress(70)
-                status_text.text("📋 HTML jelentés generálása...")
+                status_text.text("📋 AI jelentés lekérése...")
                 
                 # HTML jelentés
                 generate_html_report(json_filename, html_filename)

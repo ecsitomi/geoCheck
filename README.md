@@ -1,5 +1,6 @@
 # GEOcheck – Website GEO (Generative Engine Optimization) Audit  
 
+
 ## Tartalomjegyzék
 
 1. [Mi az a GEO és miért fontos?](#mi-az-a-geo-és-miért-fontos)  
@@ -26,6 +27,7 @@ Míg az SEO a klasszikus találati oldalakat célozza, a GEO célja, hogy **a na
 - Több **AI-csatornából érkező forgalom** és márkaemlítés  
 - **Magasabb konverzió**: a jobb strukturáltság és bizalomépítő elemek miatt  
 - **Gyorsabb tartalomfejlesztés**: világos hiánylisták és automatikus javítási javaslatok
+- **🆕 AI-vezérelt optimalizálás**: GPT-4 által készített személyre szabott fejlesztési tervek
 
 ---
 
@@ -41,6 +43,18 @@ Míg az SEO a klasszikus találati oldalakat célozza, a GEO célja, hogy **a na
 - **Haladó riportok:** executive summary, technikai audit, website elemzés  
 - **Exportok:** HTML és CSV riportok  
 - **Cache és ismételhetőség:** 1 órás TTL, statisztika és „Cache tisztítás” gomb
+
+---
+
+## ✨ AI Összefoglaló és Javaslatok
+
+**🧠 OpenAI GPT-4 Integráció**: Az elemzés eredményeit most az OpenAI GPT-4 is kiértékeli és praktikus összefoglalót készít!
+
+### Új funkciók:
+- **📝 AI Összefoglaló**: GPT-4 által készített intelligens összefoglaló az elemzési eredményekről
+- **💡 AI Javaslatok**: Konkrét, végrehajtható fejlesztési javaslatok GEO optimalizáláshoz
+- **🔄 Frissítés gomb**: Valós időben újragenerálható AI elemzés
+- **🎯 Első helyen**: Az AI Összefoglaló tab lett az első a jelentésekben
 
 ---
 
@@ -122,3 +136,48 @@ A végső **AI Readiness Score (0–100)** három komponensből áll:
 „Hybrid” módszerrel számítódnak (hagyományos + ML jelek kombinációja), **platform-specifikus preferenciákkal** (pl. Q&A és források → Bing, mély tartalom → Claude, frissesség & mobilbarát → Gemini, jól strukturált FAQ és lépéslista → ChatGPT).
 
 > A `report.py` segítségével a pontok **tooltip** magyarázattal jelennek meg a felületen és az exportban is.
+
+---
+
+## 🆕 AI Összefoglaló és Javaslatok
+
+### Konfiguráció
+
+Az AI összefoglaló funkcióhoz szükséges az OpenAI API kulcs beállítása:
+
+```bash
+# .env fájlban vagy környezeti változóként
+OPENAI_API_KEY=sk-your-openai-api-key-here
+```
+
+### Funkciók
+
+**📝 AI Összefoglaló**
+- GPT-5 által készített intelligens kiértékelés
+- Maximum 500 szavas összefoglaló az eredményekről
+- Automatikus felismerés az AI-readiness szintről
+
+**💡 AI Javaslatok**
+- Maximum 600 szavas konkrét fejlesztési terv
+- Végrehajtható lépések priorizált sorrendben
+- GEO-specifikus optimalizálási tanácsok
+
+**🔄 Interaktív frissítés**
+- Frissítés gomb minden AI összefoglalónál
+- Valós idejű regenerálás lehetősége
+- Placeholder szöveg API kulcs nélkül
+
+### Használat
+
+1. **Automatikus**: A jelentésben az "🧠 AI Összefoglaló" tab az első
+2. **Manuális**: A "🔄 Frissítés" gombbal újragenerálható
+3. **Programozottan**: `ai_summary.py` modul közvetlen használata
+
+```python
+from ai_summary import generate_ai_summary_from_file
+
+summary, recommendations = generate_ai_summary_from_file('results.json')
+print(f"Összefoglaló: {summary}")
+print(f"Javaslatok: {recommendations}")
+```
+
