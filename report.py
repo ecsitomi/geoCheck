@@ -208,7 +208,11 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         body {{
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, {primary_color} 0%, {secondary_color} 100%);
+            background-attachment: fixed;
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
             min-height: 100vh;
+            height: 100%;
             padding-left: 10%;
             padding-right: 10%;
             padding-top: 20px;
@@ -222,7 +226,11 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             left: 0;
             right: 0;
             bottom: 0;
+            width: 100vw;
+            height: 100vh;
             background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            background-attachment: fixed;
+            background-size: 60px 60px;
             pointer-events: none;
             z-index: 0;
         }}
@@ -563,15 +571,15 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         
         .tabs {{
             display: flex;
-            gap: 5px;
+            gap: 2px;
             margin: 20px 0;
             border-bottom: 2px solid #e0e0e0;
-            overflow-x: auto;
             padding-bottom: 0;
+            flex-wrap: wrap;
         }}
         
         .tab {{
-            padding: 12px 20px;
+            padding: 8px 12px;
             background: none;
             border: none;
             cursor: pointer;
@@ -580,6 +588,8 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             transition: all 0.3s;
             border-radius: 8px 8px 0 0;
             white-space: nowrap;
+            font-size: 0.85rem;
+            flex-shrink: 0;
         }}
         
         .tab:hover {{
@@ -824,8 +834,8 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             .charts-row {{ grid-template-columns: 1fr; }}
             .metrics-grid {{ grid-template-columns: 1fr; }}
             .platform-grid {{ grid-template-columns: repeat(2, 1fr); }}
-            .tabs {{ justify-content: flex-start; }}
-            .tab {{ padding: 10px 15px; font-size: 0.9rem; }}
+            .tabs {{ justify-content: flex-start; gap: 1px; }}
+            .tab {{ padding: 6px 8px; font-size: 0.8rem; }}
         }}
     </style>
 </head>
