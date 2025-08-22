@@ -41,7 +41,7 @@ class GEOAnalyzer:
         
         print(f"🚀 Enhanced GEO Analyzer inicializálva:")
         print(f"   💾 Cache: {'✅ Engedélyezve' if use_cache else '❌ Letiltva'}")
-        print(f"   🤖 AI Evaluation: {'✅ Engedélyezve' if use_ai else '❌ Letiltva'}")
+        print(f"   🤖 AI Evaluation: ✅ Engedélyezve")
         print(f"   🏗️ Schema Validation: ✅ Enhanced verzió")
 
     def get_cache_stats(self) -> Dict:
