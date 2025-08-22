@@ -2,7 +2,6 @@ import json
 import csv
 import re
 from datetime import datetime
-from turtle import width
 from typing import Dict, List, Optional
 import html
 
