@@ -1759,27 +1759,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                             
                             html_content += '</div>'
             
-            # Implementációs útmutató
-            implementation_guide = auto_fixes.get('implementation_guide', {})
-            if implementation_guide:
-                html_content += '<div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%); border-radius: 15px; border-left: 5px solid #28a745;">'
-                html_content += '<h4 style="color: #28a745; margin-bottom: 15px;">📋 Implementációs útmutató</h4>'
-                
-                priority_order = implementation_guide.get('priority_order', [])
-                if priority_order:
-                    html_content += '<div style="margin-bottom: 15px;"><strong>🔢 Prioritási sorrend:</strong><ol style="margin: 5px 0; padding-left: 20px;">'
-                    for priority in priority_order:
-                        html_content += f'<li style="margin: 2px 0;">{html.escape(priority)}</li>'
-                    html_content += '</ol></div>'
-                
-                estimated_timeline = implementation_guide.get('estimated_timeline', {})
-                if estimated_timeline:
-                    html_content += '<div style="margin-bottom: 15px;"><strong>⏱️ Becsült időkeret:</strong><ul style="margin: 5px 0; padding-left: 20px;">'
-                    for task, time in estimated_timeline.items():
-                        html_content += f'<li style="margin: 2px 0;">{task.replace("_", " ").title()}: {html.escape(time)}</li>'
-                    html_content += '</ul></div>'
-                
-                html_content += '</div>'
+            
         else:
             html_content += '<p>Automatikus javítási javaslatok nem elérhetők</p>'
             

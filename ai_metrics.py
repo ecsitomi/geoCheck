@@ -305,7 +305,7 @@ class AISpecificMetrics:
         for category, types in entity_types.items():
             count = 0
             for schema_type in types:
-                count += len(soup.find_all(attrs={"itemtype": re.compile(f"schema\.org/{schema_type}", re.I)}))
+                count += len(soup.find_all(attrs={"itemtype": re.compile(rf"schema\.org/{schema_type}", re.I)}))
             schema_entities[category] = count
         
         # JSON-LD entitások - TURBÓZOTT parsing
