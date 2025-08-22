@@ -53,12 +53,19 @@ class GEOAnalyzer:
         return stats
     
     def cleanup_cache(self) -> Dict:
-        """Cache tisztítás"""
+        """Cache tisztítás - csak lejárt fájlok"""
         if not self.cache_manager:
             return {"cleaned_files": 0, "error": "Cache not enabled"}
         
         cleaned = self.cache_manager.cleanup_expired()
         return {"cleaned_files": cleaned}
+    
+    def clear_all_cache(self) -> Dict:
+        """Teljes cache mappa törlése"""
+        if not self.cache_manager:
+            return {"status": "error", "message": "Cache not enabled"}
+        
+        return self.cache_manager.clear_all_cache()
 
     def _safe_analyze_url(self, url: str, skip_pagespeed: bool = False, force_refresh: bool = False) -> Dict:
         """Biztonságos URL elemzés wrapper - Enhanced verzió"""

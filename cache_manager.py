@@ -134,3 +134,42 @@ class CacheManager:
                     pass
         
         return deleted_count
+    
+    def clear_all_cache(self) -> Dict:
+        """Teljes cache mappa törlése"""
+        import shutil
+        
+        if not self.cache_dir.exists():
+            return {"deleted_files": 0, "deleted_dirs": 0, "status": "Cache mappa nem létezik"}
+        
+        deleted_files = 0
+        deleted_dirs = 0
+        
+        try:
+            # Először számoljuk meg mi van benne
+            for cache_file in self.cache_dir.rglob("*"):
+                if cache_file.is_file():
+                    deleted_files += 1
+                elif cache_file.is_dir():
+                    deleted_dirs += 1
+            
+            # Teljes mappa törlése
+            shutil.rmtree(self.cache_dir)
+            
+            # Újra létrehozzuk az üres mappát
+            self.cache_dir.mkdir(exist_ok=True)
+            
+            return {
+                "deleted_files": deleted_files,
+                "deleted_dirs": deleted_dirs,
+                "status": "success",
+                "message": f"Teljes cache törölve: {deleted_files} fájl, {deleted_dirs} mappa"
+            }
+            
+        except Exception as e:
+            return {
+                "deleted_files": 0,
+                "deleted_dirs": 0,
+                "status": "error",
+                "message": f"Hiba a cache törlésekor: {str(e)}"
+            }
