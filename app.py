@@ -8,7 +8,7 @@ import time
 from config import GOOGLE_API_KEY, OPENAI_API_KEY
 
 st.set_page_config(
-    page_title="Enhanced GEO Analyzer",
+    page_title="GEOcheck",
     page_icon="🚀",
     layout="wide"
 )
