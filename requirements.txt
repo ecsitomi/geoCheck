@@ -1,4 +1,5 @@
 
+# Core dependencies
 requests>=2.31.0
 beautifulsoup4>=4.12.0
 python-dotenv>=1.0.0
@@ -10,16 +11,15 @@ matplotlib>=3.7.0
 plotly>=5.15.0
 wordcloud>=1.9.0
 
-# Enhanced GEO Analyzer új függőségek
+# Machine Learning dependencies (platform_optimizer.py)
 scikit-learn>=1.3.0
 joblib>=1.3.0
 
-# AI és ML komponensekhez (opcionális - jelenleg szimuláció)
-# openai>=1.0.0
-# anthropic>=0.7.0
-
-# További utility csomagok
-psutil>=5.9.0
-
-selenium>=4.35.0
+# AI API dependencies (ai_evaluator.py)
 openai>=1.97.0
+
+# Web automation dependencies (schema_validator.py)
+selenium>=4.35.0
+
+# System utilities
+psutil>=5.9.0

@@ -1261,7 +1261,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 optimization_level = platform_data.get('optimization_level', 'N/A')
                 ai_enhanced = platform_data.get('ai_enhanced', False)
                 ai_score = platform_data.get('ai_score', 0)
-                hybrid_score = platform_data.get('hybrid_compatibility_score', 0)
+                hybrid_score = platform_data.get('hybrid_score', 0)
                 ai_suggestions = platform_data.get('ai_suggestions', [])
                 
                 html_content += f"""
@@ -1295,10 +1295,10 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     <h4>📊 Platform Összesítés</h4>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 10px;">
                         <div>
-                            <strong>Átlag kompatibilitás:</strong> {fmt(platform_summary.get('average_compatibility', 0), 1)}/100
+                            <strong>Átlag kompatibilitás:</strong> {fmt(platform_summary.get('average_traditional', 0), 1)}/100
                         </div>
                         <div>
-                            <strong>Átlag AI pontszám:</strong> {fmt(platform_summary.get('average_ai_score', 0), 1)}/100
+                            <strong>Átlag hybrid pontszám:</strong> {fmt(platform_summary.get('average_hybrid', 0), 1)}/100
                         </div>
                         <div>
                             <strong>Legjobb platform:</strong> {platform_summary.get('best_platform', {}).get('name', 'N/A')} 

@@ -1,5 +1,6 @@
 .env
 __pycache__/
+.ml_models/
 pycache
 *.pyc
 *.json
