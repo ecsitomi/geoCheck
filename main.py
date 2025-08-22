@@ -475,7 +475,7 @@ class GEOAnalyzer:
             
             # Schema validator használata
             try:
-                schema_validation = self.schema_validator.validate_with_google_simulation(url, html)
+                schema_validation = self.schema_validator.validate_with_google_test(url, html)
                 schema_completeness = self.schema_validator.analyze_schema_completeness(
                     result["schema"], html[:2000]  # Limitált tartalom
                 )
