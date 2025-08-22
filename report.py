@@ -2,6 +2,7 @@ import json
 import csv
 import re
 from datetime import datetime
+from turtle import width
 from typing import Dict, List, Optional
 import html
 
@@ -181,7 +182,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
     avg_score = sum(r['ai_readiness_score'] for r in valid_results) / len(valid_results) if valid_results else 0
     
     # Report címek és stílus
-    report_title = "🚀 Enhanced GEO AI Readiness Report" if is_enhanced else "📊 GEO AI Readiness Report"
+    report_title = "🚀 GEOcheck 🚀"
     primary_color = "#667eea" if is_enhanced else "#4facfe"
     secondary_color = "#764ba2" if is_enhanced else "#00f2fe"
     
@@ -208,7 +209,22 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, {primary_color} 0%, {secondary_color} 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding-left: 10%;
+            padding-right: 10%;
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }}
+
+        body::before {{
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
         }}
         
         .container {{
@@ -220,15 +236,17 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             background: white;
             border-radius: 20px;
             padding: 30px;
-            margin-bottom: 30px;
+            max-width: 1200px; /* vagy ugyanaz, mint a container */
+            margin: 0 auto 30px auto; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            {f'border-left: 5px solid {primary_color};' if is_enhanced else ''}
+            {f'border-left: 5px solid {secondary_color};' if is_enhanced else ''}
         }}
         
         h1 {{
             color: #333;
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
         }}
         
         .enhanced-badge {{
@@ -297,16 +315,13 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             background: white;
             border-radius: 20px;
             padding: 30px;
-            margin-bottom: 30px;
+            margin: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            {f'border-left: 5px solid {primary_color};' if is_enhanced else ''}
+            {f'border-left: 5px solid {secondary_color};' if is_enhanced else ''}
             transition: transform 0.2s, box-shadow 0.2s;
         }}
         
-        .site-card:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-        }}
+
         
         .site-header {{
             display: flex;
@@ -769,6 +784,21 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             font-size: 0.9rem;
             margin-top: 10px;
         }}
+
+        header {{
+            background: linear-gradient(120deg, #f8f8f8 60%, #fbc2eb 100%);
+            text-align: center;
+            }}
+
+        .card-bg {{
+            background: linear-gradient(120deg, #f8f8f8 70%, #fbc2eb 100%);
+            }}
+
+        header, .site-card {{
+            width: 100%;
+            max-width: 1200px; /* vagy ugyanaz, mint a container */
+            margin: 0 auto 30px auto; 
+        }}
         
         details {{
             margin: 15px 0;
@@ -802,50 +832,13 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
 <body>
     <div class="container">
         <header>
-            <h1>{report_title.replace('🚀 ', '').replace('📊 ', '')}</h1>
+            <h1>{report_title}</h1>
             <p style="color: #666;">
                 Generative Engine Optimization elemzés - {datetime.now().strftime('%Y. %m. %d. %H:%M')}
-                {f'<span class="enhanced-badge">AI ENHANCED</span>' if is_enhanced else ''}
+                {f'<span class="enhanced-badge">OpenAI által ellenőrzött</span>' if is_enhanced else ''}
             </p>
             
-            <div class="summary">
-                <div class="summary-card">
-                    <div class="value">{len(data)}</div>
-                    <div class="label">Elemzett oldalak</div>
-                </div>
-                <div class="summary-card">
-                    <div class="value">{fmt(avg_score, 1)}</div>
-                    <div class="label">Átlagos AI Readiness</div>
-                </div>
-                <div class="summary-card">
-                    <div class="value">{sum(1 for s in valid_results if s.get('ai_readiness_score', 0) >= 70)}</div>
-                    <div class="label">Kiváló oldalak</div>
-                </div>
-                <div class="summary-card">
-                    <div class="value">{sum(1 for s in valid_results if s.get('ai_readiness_score', 0) < 50)}</div>
-                    <div class="label">Fejlesztendő</div>
-                </div>"""
-    
-    # Enhanced statisztikák hozzáadása
-    if is_enhanced:
-        html_content += f"""
-                <div class="summary-card enhanced">
-                    <div class="value">{enhancement_stats['ai_enhanced_count']}</div>
-                    <div class="label">🤖 AI Enhanced</div>
-                </div>
-                <div class="summary-card enhanced">
-                    <div class="value">{enhancement_stats['schema_enhanced_count']}</div>
-                    <div class="label">🏗️ Schema Enhanced</div>
-                </div>"""
-        
-        if enhancement_stats['cached_count'] > 0:
-            html_content += f"""
-                <div class="summary-card enhanced">
-                    <div class="value">{enhancement_stats['cache_hit_rate']}%</div>
-                    <div class="label">💾 Cache Hit Rate</div>
-                </div>"""
-    
-    html_content += """
+            
             </div>
         </header>
 """
@@ -885,17 +878,17 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         ai_factual = site.get("ai_factual_check", {})
         
         html_content += f"""
-        <div class="site-card">
+        <div class="site-card card-bg">
             <div class="site-header">
                 <div>
-                    <div class="site-url">{html.escape(url)}</div>
+                    <div class="site-url">{html.escape(url)} URL elemzése</div>
                     <div class="enhancement-badges">"""
         
         # Enhancement badges
         if has_ai_eval:
-            html_content += '<span class="enhancement-badge badge-ai">🤖 AI Enhanced</span>'
+            html_content += '<span class="enhancement-badge badge-ai">🤖 AI & ML ellenőrzés</span>'
         if has_schema_enhanced:
-            html_content += f'<span class="enhancement-badge badge-schema" title="{html.escape(HELP_TEXTS.get("schema_enhanced", ""))}">🏗️ Schema Enhanced</span>'
+            html_content += f'<span class="enhancement-badge badge-schema" title="{html.escape(HELP_TEXTS.get("schema_enhanced", ""))}">🏗️ Schema & Google validálás</span>'
         if was_cached:
             html_content += '<span class="enhancement-badge badge-cache">💾 Cached</span>'
             
@@ -907,20 +900,20 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             
             <!-- Tab navigáció -->
             <div class="tabs">
-                <button class="tab active" onclick="showTab(event, '{uid}', 'overview')">📊 Áttekintés</button>
-                <button class="tab" onclick="showTab(event, '{uid}', 'ai-metrics')">🤖 AI Metrikák</button>"""
+                <button class="tab active" onclick="showTab(event, '{uid}', 'overview')" title="URL site és html adatok ellenőrzése">📊 HTML adatok</button>
+                <button class="tab" onclick="showTab(event, '{uid}', 'ai-metrics')" title="URL tartalmának AI metrikai mérése ">🤖 AI Metrikák</button>"""
         
         # Enhanced tabok hozzáadása
         if has_ai_eval:
-            html_content += f'\n                <button class="tab" onclick="showTab(event, \'{uid}\', \'ai-enhanced\')">🚀 AI Enhanced</button>'
+            html_content += f'\n                <button class="tab" onclick="showTab(event, \'{uid}\', \'ai-enhanced\')" title="URL szöveges tartalomának AI olvashatósági elemzése">🚀 AI Olvashatóság</button>'
         if has_schema_enhanced:
-            html_content += f'\n                <button class="tab" onclick="showTab(event, \'{uid}\', \'schema-enhanced\')" title="Fejlett schema elemzés állapota. Enhanced verzió Google validátort és hatékonyság mérést is tartalmaz.">🏗️ Schema Enhanced</button>'
+            html_content += f'\n                <button class="tab" onclick="showTab(event, \'{uid}\', \'schema-enhanced\')" title="Fejlett Schema validálás, Google elemzés és hatékonyság mérés">🏗️ Schema validálás</button>'
             
         html_content += f"""
-                <button class="tab" onclick="showTab(event, '{uid}', 'content')">📝 Tartalom</button>
-                <button class="tab" onclick="showTab(event, '{uid}', 'platforms')">🎯 Platformok</button>
-                <button class="tab" onclick="showTab(event, '{uid}', 'pagespeed')">⚡ Pagespeed</button>
-                <button class="tab" onclick="showTab(event, '{uid}', 'fixes')">🔧 Javítások</button>
+                <button class="tab" onclick="showTab(event, '{uid}', 'content')" title="URL szöveges tartalomának AI technikai elemzése">📝 AI Tartalom</button>
+                <button class="tab" onclick="showTab(event, '{uid}', 'platforms')" title="URL platform AI elemzése">🎯 AI Platformok</button>
+                <button class="tab" onclick="showTab(event, '{uid}', 'pagespeed')" title="Összetett Google speed teszt">⚡ Pagespeed</button>
+                <button class="tab" onclick="showTab(event, '{uid}', 'fixes')" title="URL javítások és javaslatok">🔧 Javítások</button>
             </div>
             
             <!-- Áttekintés tab -->
@@ -984,31 +977,6 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     </div>
                 </div>
 """
-
-        # AI Enhanced Score megjelenítése ha van
-        if has_ai_eval and ai_content_eval:
-            ai_overall = ai_content_eval.get('overall_ai_score', 0)
-            ai_platform_scores = ai_content_eval.get('ai_quality_scores', {})
-            
-            html_content += f"""
-                <div class="ai-scores">
-                    <h3>🚀 AI Enhanced Scores</h3>
-                    <div class="ai-score-grid">
-                        <div class="ai-score-item">
-                            <div class="ai-score-value">{fmt(ai_overall, 1)}</div>
-                            <div class="ai-score-label">Overall AI Score</div>
-                        </div>"""
-            
-            for platform, score in ai_platform_scores.items():
-                html_content += f"""
-                        <div class="ai-score-item">
-                            <div class="ai-score-value">{fmt(score, 1)}</div>
-                            <div class="ai-score-label">{platform.title()}</div>
-                        </div>"""
-            
-            html_content += """
-                    </div>
-                </div>"""
         
         # Charts
         html_content += f"""
@@ -1819,11 +1787,11 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
     current_year = datetime.now().year
     html_content += f"""
         <div class="footer">
-            <p>© {current_year} {'Enhanced ' if is_enhanced else ''}GEO Analyzer | AI Readiness Report</p>
+            <p>© {current_year} GEOcheck | Fejlesztette: Ecsedi Tamás</p>
             <p style="margin-top: 10px; opacity: 0.8;">
-                {'🚀 AI-Enhanced elemzés minden platform számára' if is_enhanced else '📊 Teljes elemzés minden AI platform számára'}
+                {'🚀 AI & ML támogatott generativ engine optimalizált website ellenőrző rendszer' if is_enhanced else '📊 AI & ML támogatott generativ engine optimalizált website ellenőrző rendszer'}
             </p>
-            {f'<p style="margin-top: 5px; opacity: 0.7; font-size: 0.9rem;">AI Enhanced: {enhancement_stats["ai_enhanced_percentage"]}% | Schema Enhanced: {enhancement_stats["schema_enhanced_percentage"]}%</p>' if is_enhanced else ''}
+            {f'<p style="margin-top: 5px; opacity: 0.7; font-size: 0.9rem;">geocheck.streamlit.app</p>'}
         </div>
     </div>
     
