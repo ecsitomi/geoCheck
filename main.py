@@ -818,7 +818,7 @@ def analyze_urls(url_list: List[str], api_key: Optional[str] = None,
         skip_pagespeed=skip_pagespeed,
         max_workers=max_workers,
         use_cache=False,  # Standard verzióban nincs cache
-        use_ai=False      # Standard verzióban nincs AI
+        use_ai=True      
     )
 
 
