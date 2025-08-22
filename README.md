@@ -1,9 +1,4 @@
 # GEOcheck – Website GEO (Generative Engine Optimization) Audit  
-**Streamlit app vállalkozóknak, döntéshozóknak és fejlesztő csapatoknak**
-
-Ez a README a feltöltött kód ( `/advanced_reporting.py`, `/ai_evaluator.py`, `/ai_metrics.py`, `/app.py`, `/auto_fixes.py`, `/cache_manager.py`, `/config.py`, `/content_analyzer.py`, `/main.py`, `/platform_optimizer.py`, `/report.py`, `/schema_validator.py` ) alapján készült. A dokumentum célja, hogy **üzleti döntéshozók számára is érthetően** bemutassa az alkalmazás értékét, működését és az egyes mutatók mögötti logikát – valamint **konkrét útmutatót adjon a 100% közeli eredmények eléréséhez**.
-
----
 
 ## Tartalomjegyzék
 
