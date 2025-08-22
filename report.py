@@ -786,7 +786,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         }}
 
         header {{
-            background: linear-gradient(120deg, #f8f8f8 60%, #fbc2eb 100%);
+            background: linear-gradient(120deg, #f8f8f8 65%, #fbc2eb 100%);
             text-align: center;
             }}
 
@@ -1002,11 +1002,11 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     <div class="metric-item ai-enhanced">
                         <div class="metric-title">🎯 AI Pontszámok{help_icon("ai_content_evaluation")}</div>
                         <div class="metric-value">
-                            Overall AI Score: {fmt(ai_content_eval.get('overall_ai_score', 0), 1)}/100<br>"""
+                            Overall AI Score: {fmt(ai_content_eval.get('overall_ai_score', 0), 0)}/100<br>"""
             
             ai_platform_scores = ai_content_eval.get('ai_quality_scores', {})
             for platform, score in ai_platform_scores.items():
-                html_content += f"                            {platform.title()}: {fmt(score, 1)}/100<br>"
+                html_content += f"                            {platform.title()}: {fmt(score, 0)}/100<br>"
             
             html_content += """
                         </div>
@@ -1018,10 +1018,10 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     <div class="metric-item ai-enhanced">
                         <div class="metric-title">📖 AI Olvashatóság{help_icon("ai_readability")}</div>
                         <div class="metric-value">
-                            Clarity: {fmt(ai_readability.get('clarity_score', 0), 1)}/100<br>
-                            Engagement: {fmt(ai_readability.get('engagement_score', 0), 1)}/100<br>
-                            Structure: {fmt(ai_readability.get('structure_score', 0), 1)}/100<br>
-                            AI Friendliness: {fmt(ai_readability.get('ai_friendliness', 0), 1)}/100
+                            Clarity: {fmt(ai_readability.get('clarity_score', 0), 0)}/100<br>
+                            Engagement: {fmt(ai_readability.get('engagement_score', 0), 0)}/100<br>
+                            Structure: {fmt(ai_readability.get('structure_score', 0), 0)}/100<br>
+                            AI Friendliness: {fmt(ai_readability.get('ai_friendliness', 0), 0)}/100
                         </div>
                     </div>"""
             
@@ -1031,7 +1031,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     <div class="metric-item ai-enhanced">
                         <div class="metric-title">✅ Faktualitás{help_icon("ai_factual_check")}</div>
                         <div class="metric-value">
-                            Factual Score: {fmt(ai_factual.get('factual_score', 0), 1)}/100<br>
+                            Factual Score: {fmt(ai_factual.get('factual_score', 0), 0)}/100<br>
                             Citations: {ai_factual.get('accuracy_indicators', {}).get('citations_present', 0)}<br>
                             Numbers with Units: {ai_factual.get('accuracy_indicators', {}).get('numbers_with_units', 0)}<br>
                             Confidence: {ai_factual.get('confidence_level', 'N/A')}
@@ -1066,7 +1066,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                         <div class="metric-title">🔍 Google Validation{help_icon("google_validation")}</div>
                         <div class="metric-value">
                             Valid: {"✅" if google_validation.get('is_valid') else "❌"}<br>
-                            Overall Score: {fmt(google_validation.get('overall_score', 0), 1)}/100<br>
+                            Overall Score: {fmt(google_validation.get('overall_score', 0), 0)}/100<br>
                             Rich Results: {"✅" if google_validation.get('rich_results_eligible') else "❌"}<br>
                             Schema Count: {google_validation.get('schema_count', 0)}
                         </div>
@@ -1096,8 +1096,8 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     <div class="metric-item ai-enhanced">
                         <div class="metric-title">📈 Schema Effectiveness{help_icon("schema_effectiveness")}</div>
                         <div class="metric-value">
-                            Effectiveness Score: {fmt(effectiveness.get('effectiveness_score', 0), 1)}/100<br>
-                            AI Understanding: {fmt(effectiveness.get('ai_understanding_improvement', 0), 1)}/100<br>
+                            Effectiveness Score: {fmt(effectiveness.get('effectiveness_score', 0), 0)}/100<br>
+                            AI Understanding: {fmt(effectiveness.get('ai_understanding_improvement', 0), 0)}/100<br>
                             CTR Impact: +{fmt(effectiveness.get('ctr_impact_estimate', 0), 1)}%
                         </div>
                     </div>"""
@@ -1126,7 +1126,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     </div>
                     <div class="ai-metric">
                         <div class="ai-metric-label">AI Weighted{help_icon("weighted_average")}</div>
-                        <div class="ai-metric-value">{fmt(weighted_avg, 1)}</div>
+                        <div class="ai-metric-value">{fmt(weighted_avg, 0)}</div>
                     </div>
                 </div>
                 
@@ -1152,7 +1152,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 html_content += f"""
                     <div class="ai-metric">
                         <div class="ai-metric-label">{display_label}{help_icon(key)}</div>
-                        <div class="ai-metric-value">{value}</div>
+                        <div class="ai-metric-value">{fmt(value, 0)}</div>
                     </div>
 """
             html_content += "</div>"
@@ -1287,7 +1287,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                         <div class="platform-level">{optimization_level}</div>
                         <div style="margin-top: 10px; font-size: 0.8rem;">
                             AI Score: {fmt(ai_score, 0)}/100<br>
-                            Hybrid Score: {fmt(hybrid_score, 1)}/100
+                            Hybrid Score: {fmt(hybrid_score, 0)}/100
                         </div>"""
                 
                 # AI javaslatok megjelenítése
@@ -2012,7 +2012,7 @@ def generate_csv_export(json_file: str = "ai_readiness_full_report.json",
             
             row = {
                 'URL': site.get('url', 'N/A'),
-                'AI Score': fmt(site.get('ai_readiness_score', 0), 1),
+                'AI Score': fmt(site.get('ai_readiness_score', 0), 0),
                 'Title Length': title_len,
                 'Description Length': desc_len,
                 'Has Robots.txt': site.get('robots_txt', {}).get('can_fetch', False),
@@ -2029,7 +2029,7 @@ def generate_csv_export(json_file: str = "ai_readiness_full_report.json",
                 ai_content_eval = site.get('ai_content_evaluation', {})
                 row.update({
                     'AI Enhanced': bool(ai_content_eval),
-                    'AI Overall Score': fmt(ai_content_eval.get('overall_ai_score', 0), 1) if ai_content_eval else '—',
+                    'AI Overall Score': fmt(ai_content_eval.get('overall_ai_score', 0), 0) if ai_content_eval else '—',
                     'Schema Enhanced': schema.get('validation_status') == 'enhanced',
                     'Schema Completeness': fmt(schema.get('schema_completeness_score', 0), 1),
                     'Cached': site.get('cached', False),
