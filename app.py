@@ -279,6 +279,15 @@ with col1:
         - **Priority Scoring**: Javítások fontossági sorrendben
         - **Code Generation**: Kész HTML/JSON-LD kód generálás
         
+        **⚡ PageSpeed Insights Integráció (Google API):**
+        - **Mobile & Desktop Teljesítmény**: Valós Google PageSpeed API mérések
+        - **Core Web Vitals**: LCP, FID, CLS metrikák részletes elemzése
+        - **Performance Scoring**: 0-100 pontszám mobil és desktop verzióra
+        - **SEO Technical Score**: Technikai SEO tényezők Google értékelése
+        - **Visual Indicators**: Színkódolt eredmények (jó/javítandó/gyenge)
+        - **Performance Impact**: Teljesítmény hatása AI platform rangsorolásra
+        - **Optimization Tips**: Automatikus teljesítmény javítási javaslatok
+        
         **📈 Advanced Reporting:**
         - **Executive Summary**: C-level döntéshozói összefoglaló
         - **Technical Audit**: Fejlesztői részletes technikai jelentés

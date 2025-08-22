@@ -48,6 +48,11 @@ HELP_TEXTS = {
     "pagespeed_mobile": "PageSpeed Insights mobil teljesítmény pontszám (0-100). A gyors betöltés javítja a felhasználói élményt.",
     "pagespeed_desktop": "PageSpeed Insights asztali teljesítmény pontszám (0-100).",
     "core_web_vitals": "Google Core Web Vitals mutatók: LCP (betöltés), FID (interaktivitás), CLS (vizuális stabilitás).",
+    "lcp": "Largest Contentful Paint - A legnagyobb tartalom elem betöltési ideje. Ideális: <2.5s, Javítandó: 2.5-4s, Gyenge: >4s",
+    "fid": "First Input Delay - Az első felhasználói interakció késleltetése. Ideális: <100ms, Javítandó: 100-300ms, Gyenge: >300ms", 
+    "cls": "Cumulative Layout Shift - Vizuális stabilitás mérése. Ideális: <0.1, Javítandó: 0.1-0.25, Gyenge: >0.25",
+    "pagespeed_performance": "PageSpeed Insights teljesítmény pontszám. 90-100: Jó, 50-89: Javítandó, 0-49: Gyenge",
+    "pagespeed_seo": "PageSpeed Insights SEO pontszám. A technikai SEO tényezők értékelése.",
     
     # Fejlett mutatók
     "weighted_average": "AI-metrikák súlyozott átlaga. Nem azonos az AI Readiness-szel, de jól jelzi az AI-barát tartalom minőségét.",
@@ -914,6 +919,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         html_content += f"""
                 <button class="tab" onclick="showTab(event, '{uid}', 'content')">📝 Tartalom</button>
                 <button class="tab" onclick="showTab(event, '{uid}', 'platforms')">🎯 Platformok</button>
+                <button class="tab" onclick="showTab(event, '{uid}', 'pagespeed')">⚡ Pagespeed</button>
                 <button class="tab" onclick="showTab(event, '{uid}', 'fixes')">🔧 Javítások</button>
             </div>
             
@@ -1397,6 +1403,224 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             html_content += '</div>'
             
         # Platformok tab lezárása
+        html_content += '</div>'
+            
+        # PageSpeed Insights tab kezdése
+        html_content += f"""
+            <!-- PageSpeed Insights tab -->
+            <div id="{uid}-pagespeed" class="tab-content">
+                <h3>⚡ PageSpeed Insights eredmények</h3>"""
+        
+        # PageSpeed Insights adatok megjelenítése
+        pagespeed_data = site.get('pagespeed_insights', {})
+        if pagespeed_data:
+            mobile_data = pagespeed_data.get('mobile', {})
+            desktop_data = pagespeed_data.get('desktop', {})
+            
+            html_content += '<div class="metrics-grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">'
+            
+            # Mobil eredmények
+            if mobile_data:
+                mobile_perf = mobile_data.get('performance', 0)
+                mobile_seo = mobile_data.get('seo', 0)
+                mobile_vitals = mobile_data.get('core_web_vitals', {})
+                
+                perf_class = 'score-good' if mobile_perf >= 90 else 'score-average' if mobile_perf >= 50 else 'score-poor'
+                seo_class = 'score-good' if mobile_seo >= 90 else 'score-average' if mobile_seo >= 50 else 'score-poor'
+                
+                html_content += f"""
+                <div class="metric-item" style="background: linear-gradient(135deg, #e3f2fd 0%, #f1f8ff 100%);">
+                    <div class="metric-title">📱 Mobil teljesítmény{help_icon("pagespeed_mobile")}</div>
+                    <div class="metric-value">
+                        <div style="margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span>Teljesítmény{help_icon("pagespeed_performance")}</span>
+                                <span class="{perf_class}" style="padding: 4px 8px; border-radius: 12px; font-weight: bold;">{mobile_perf}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>SEO{help_icon("pagespeed_seo")}</span>
+                                <span class="{seo_class}" style="padding: 4px 8px; border-radius: 12px; font-weight: bold;">{mobile_seo}</span>
+                            </div>
+                        </div>
+                        
+                        <div style="border-top: 1px solid #ddd; padding-top: 15px;">
+                            <strong>Core Web Vitals{help_icon("core_web_vitals")}</strong>"""
+                
+                if mobile_vitals:
+                    lcp = mobile_vitals.get('lcp', 'N/A')
+                    fid = mobile_vitals.get('fid', 'N/A')
+                    cls = mobile_vitals.get('cls', 'N/A')
+                    
+                    # LCP értékelés
+                    lcp_status = "✅"
+                    if isinstance(lcp, str) and lcp != 'N/A':
+                        try:
+                            lcp_val = float(lcp.replace('s', '').replace(' ', ''))
+                            lcp_status = "✅" if lcp_val <= 2.5 else "⚠️" if lcp_val <= 4.0 else "❌"
+                        except:
+                            pass
+                    
+                    # FID értékelés
+                    fid_status = "✅"
+                    if isinstance(fid, str) and fid != 'N/A':
+                        try:
+                            fid_val = float(fid.replace('ms', '').replace(' ', ''))
+                            fid_status = "✅" if fid_val <= 100 else "⚠️" if fid_val <= 300 else "❌"
+                        except:
+                            pass
+                    
+                    # CLS értékelés
+                    cls_status = "✅"
+                    if isinstance(cls, (str, float, int)) and str(cls) != 'N/A':
+                        try:
+                            cls_val = float(str(cls))
+                            cls_status = "✅" if cls_val <= 0.1 else "⚠️" if cls_val <= 0.25 else "❌"
+                        except:
+                            pass
+                    
+                    html_content += f"""
+                            <div style="margin-top: 8px; font-size: 0.9rem;">
+                                <div style="display: flex; justify-content: space-between; margin: 4px 0;">
+                                    <span>LCP{help_icon("lcp")}</span>
+                                    <span>{lcp_status} {lcp}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin: 4px 0;">
+                                    <span>FID{help_icon("fid")}</span>
+                                    <span>{fid_status} {fid}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin: 4px 0;">
+                                    <span>CLS{help_icon("cls")}</span>
+                                    <span>{cls_status} {cls}</span>
+                                </div>
+                            </div>"""
+                else:
+                    html_content += '<div style="margin-top: 8px; color: #666;">Nincs adat</div>'
+                
+                html_content += """
+                        </div>
+                    </div>
+                </div>"""
+            
+            # Desktop eredmények
+            if desktop_data:
+                desktop_perf = desktop_data.get('performance', 0)
+                desktop_seo = desktop_data.get('seo', 0)
+                desktop_vitals = desktop_data.get('core_web_vitals', {})
+                
+                perf_class = 'score-good' if desktop_perf >= 90 else 'score-average' if desktop_perf >= 50 else 'score-poor'
+                seo_class = 'score-good' if desktop_seo >= 90 else 'score-average' if desktop_seo >= 50 else 'score-poor'
+                
+                html_content += f"""
+                <div class="metric-item" style="background: linear-gradient(135deg, #f3e5f5 0%, #faf2ff 100%);">
+                    <div class="metric-title">🖥️ Desktop teljesítmény{help_icon("pagespeed_desktop")}</div>
+                    <div class="metric-value">
+                        <div style="margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span>Teljesítmény{help_icon("pagespeed_performance")}</span>
+                                <span class="{perf_class}" style="padding: 4px 8px; border-radius: 12px; font-weight: bold;">{desktop_perf}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>SEO{help_icon("pagespeed_seo")}</span>
+                                <span class="{seo_class}" style="padding: 4px 8px; border-radius: 12px; font-weight: bold;">{desktop_seo}</span>
+                            </div>
+                        </div>
+                        
+                        <div style="border-top: 1px solid #ddd; padding-top: 15px;">
+                            <strong>Core Web Vitals{help_icon("core_web_vitals")}</strong>"""
+                
+                if desktop_vitals:
+                    lcp = desktop_vitals.get('lcp', 'N/A')
+                    fid = desktop_vitals.get('fid', 'N/A')
+                    cls = desktop_vitals.get('cls', 'N/A')
+                    
+                    # LCP értékelés
+                    lcp_status = "✅"
+                    if isinstance(lcp, str) and lcp != 'N/A':
+                        try:
+                            lcp_val = float(lcp.replace('s', '').replace(' ', ''))
+                            lcp_status = "✅" if lcp_val <= 2.5 else "⚠️" if lcp_val <= 4.0 else "❌"
+                        except:
+                            pass
+                    
+                    # FID értékelés
+                    fid_status = "✅"
+                    if isinstance(fid, str) and fid != 'N/A':
+                        try:
+                            fid_val = float(fid.replace('ms', '').replace(' ', ''))
+                            fid_status = "✅" if fid_val <= 100 else "⚠️" if fid_val <= 300 else "❌"
+                        except:
+                            pass
+                    
+                    # CLS értékelés
+                    cls_status = "✅"
+                    if isinstance(cls, (str, float, int)) and str(cls) != 'N/A':
+                        try:
+                            cls_val = float(str(cls))
+                            cls_status = "✅" if cls_val <= 0.1 else "⚠️" if cls_val <= 0.25 else "❌"
+                        except:
+                            pass
+                    
+                    html_content += f"""
+                            <div style="margin-top: 8px; font-size: 0.9rem;">
+                                <div style="display: flex; justify-content: space-between; margin: 4px 0;">
+                                    <span>LCP{help_icon("lcp")}</span>
+                                    <span>{lcp_status} {lcp}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin: 4px 0;">
+                                    <span>FID{help_icon("fid")}</span>
+                                    <span>{fid_status} {fid}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin: 4px 0;">
+                                    <span>CLS{help_icon("cls")}</span>
+                                    <span>{cls_status} {cls}</span>
+                                </div>
+                            </div>"""
+                else:
+                    html_content += '<div style="margin-top: 8px; color: #666;">Nincs adat</div>'
+                
+                html_content += """
+                        </div>
+                    </div>
+                </div>"""
+            
+            html_content += '</div>'  # metrics-grid lezárása
+            
+            # Összesítő információk
+            if mobile_data and desktop_data:
+                avg_perf = (mobile_data.get('performance', 0) + desktop_data.get('performance', 0)) / 2
+                avg_seo = (mobile_data.get('seo', 0) + desktop_data.get('seo', 0)) / 2
+                
+                html_content += f"""
+                <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #fff3e0 0%, #fffbf7 100%); border-radius: 15px; border-left: 5px solid #ff9800;">
+                    <h4 style="color: #ff9800; margin-bottom: 15px;">📊 Összesítő</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <strong>Átlagos teljesítmény:</strong> 
+                            <span style="font-size: 1.2rem; font-weight: bold; color: {'#4caf50' if avg_perf >= 80 else '#ff9800' if avg_perf >= 60 else '#f44336'};">
+                                {fmt(avg_perf, 0)} pont
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Átlagos SEO:</strong> 
+                            <span style="font-size: 1.2rem; font-weight: bold; color: {'#4caf50' if avg_seo >= 80 else '#ff9800' if avg_seo >= 60 else '#f44336'};">
+                                {fmt(avg_seo, 0)} pont
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.7); border-radius: 8px;">
+                        <strong>💡 Javaslatok:</strong>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li>A mobil teljesítmény kulcsfontosságú a SEO és felhasználói élmény szempontjából</li>
+                            <li>Core Web Vitals optimalizálása javítja a Google rangsorolást</li>
+                            <li>90+ pontszám elérése minden kategóriában az ideális cél</li>
+                        </ul>
+                    </div>
+                </div>"""
+        else:
+            html_content += '<p style="color: #666; text-align: center; padding: 40px;">PageSpeed Insights adatok nem elérhetők</p>'
+            
+        # PageSpeed Insights tab lezárása
         html_content += '</div>'
             
         # Javítások tab kezdése
