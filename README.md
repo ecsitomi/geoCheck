@@ -30,7 +30,29 @@
 
 * **Python 3.10+** (ajánlott)
 * `pip` és a projekt gyökérben található `requirements.txt` csomagjai
-* Opcionálisan: ha a metrikák LLM‑re támaszkodnak (pl. forrás‑összepárosítás), szükség lehet API‑kulcsokra (pl. `OPENAI_API_KEY`).
+* **API kulcsok beállítása** (opcionális, de ajánlott):
+  * `GOOGLE_API_KEY` - PageSpeed Insights API-hoz
+  * `OPENAI_API_KEY` - AI tartalom értékeléshez
+
+### API kulcsok konfigurálása
+
+A rendszer két módon kezeli az API kulcsokat **prioritási sorrendben**:
+
+1. **`.env` fájl** (elsődleges):
+```bash
+# .env fájl a projekt gyökérben
+GOOGLE_API_KEY=your_google_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+2. **Streamlit Secrets** (fallback):
+```toml
+# .streamlit/secrets.toml fájl
+GOOGLE_API_KEY = "your_google_api_key_here"
+OPENAI_API_KEY = "your_openai_api_key_here"
+```
+
+**Jegyzet**: Ha nincs beállítva API kulcs, az alkalmazás fallback algoritmusokkal működik csökkentett funkcionalitással.
 
 ```bash
 python -m venv .venv
@@ -48,11 +70,21 @@ python main.py --url "https://pelda.hu/cikk" --out reports/
 python main.py --text-file input.txt --model gpt-4o-mini --format md
 ```
 
-**UI (ha van Streamlit/Flask app):**
+**Streamlit Web Interface:**
 
 ```bash
-# Streamlit példa
+# Streamlit alkalmazás indítása
 streamlit run app.py
+```
+
+A web interface automatikusan felismeri az API kulcsok jelenlétét és a konfigurációs státuszt megjeleníti az oldalsávban.
+
+**CLI használat:**
+
+```bash
+python main.py --url "https://pelda.hu/cikk" --out reports/
+# vagy
+python main.py --text-file input.txt --model gpt-4o-mini --format md
 ```
 
 Argumentumok (tipikus):

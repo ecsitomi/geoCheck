@@ -5,6 +5,7 @@ from main import analyze_urls_enhanced, GEOAnalyzer
 from report import generate_html_report, generate_csv_export
 from advanced_reporting import AdvancedReportGenerator  
 import time
+from config import GOOGLE_API_KEY, OPENAI_API_KEY
 
 st.set_page_config(
     page_title="Enhanced GEO Analyzer",
@@ -12,21 +13,13 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🚀 Enhanced GEO AI Readiness Analyzer")
-st.markdown("**Generative Engine Optimization** elemzés eszköz - AI-Enhanced verzió")
+st.title("🚀 GEOcheck")
+st.markdown("**Generative Engine Optimization** website elemző rendszer AI & ML támogatással")
 
 # Sidebar beállítások
 st.sidebar.header("⚙️ Beállítások")
 
-# API kulcs beállítás
-api_key = st.sidebar.text_input(
-    "Google PageSpeed API kulcs:",
-    type="password",
-    help="Opcionális - PageSpeed Insights-hoz szükséges"
-)
-
-# Enhanced beállítások
-st.sidebar.subheader("🤖 AI Enhancement")
+api_key = GOOGLE_API_KEY
 
 use_ai_evaluation = st.sidebar.checkbox(
     "AI tartalom értékelés",
@@ -45,9 +38,6 @@ force_refresh = st.sidebar.checkbox(
     value=False,
     help="Minden URL újraelemzése cache mellőzésével"
 )
-
-# Elemzési opciók
-st.sidebar.subheader("📊 Elemzési beállítások")
 
 skip_pagespeed = st.sidebar.checkbox(
     "PageSpeed átugrása", 
@@ -98,14 +88,14 @@ if use_cache:
             st.sidebar.error(f"Tisztítás hiba: {e}")
 
 # Főoldal
-col1, col2 = st.columns([2, 1])
+col1, col2 = st.columns([3, 2])
 
 with col1:
     st.header("📝 URL-ek megadása")
     
     # URL input módok
     input_method = st.radio(
-        "URL megadás módja:",
+        "Bevitel módja:",
         ["Szöveges lista", "Fájl feltöltés"]
     )
     
@@ -128,302 +118,251 @@ with col1:
         if uploaded_file:
             content = str(uploaded_file.read(), "utf-8")
             url_list = [url.strip() for url in content.split('\n') if url.strip()]
-    
-    # URL előnézet
-    if url_list:
-        st.success(f"✅ {len(url_list)} URL betöltve")
-        with st.expander("URL lista előnézete"):
-            for i, url in enumerate(url_list[:10], 1):
-                ai_icon = "🤖" if use_ai_evaluation else "📊"
-                cache_icon = "💾" if use_cache else "🔄"
-                st.text(f"{i}. {ai_icon}{cache_icon} {url}")
-            if len(url_list) > 10:
-                st.text(f"... és még {len(url_list) - 10} URL")
 
 with col2:
-    st.header("📊 Előző elemzések")
-    
-    # Enhanced jelentések listázása
-    json_files = [f for f in os.listdir('.') if f.endswith('_report.json')]
-    enhanced_files = [f for f in json_files if 'enhanced' in f]
-    html_files = [f for f in os.listdir('.') if f.endswith('.html') and 'report' in f]
-    
-    if enhanced_files:
-        st.subheader("🤖 Enhanced jelentések:")
-        for file in enhanced_files[:5]:
-            if st.button(f"📁 {file}", key=f"enhanced_{file}"):
-                with open(file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                # Enhanced adatok megjelenítése
-                valid_results = [r for r in data if 'ai_readiness_score' in r and 'error' not in r]
-                ai_enhanced_count = len([r for r in valid_results if r.get('ai_content_evaluation')])
-                
-                st.json({
-                    "total_sites": len(data),
-                    "valid_results": len(valid_results),
-                    "ai_enhanced_results": ai_enhanced_count,
-                    "avg_score": sum(r['ai_readiness_score'] for r in valid_results) / len(valid_results) if valid_results else 0
-                })
-    
-    if json_files and not enhanced_files:
-        st.subheader("📊 Standard jelentések:")
-        for file in json_files[:5]:
-            if st.button(f"📁 {file}", key=f"json_{file}"):
-                with open(file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                st.json(data[:2] if isinstance(data, list) else data)  # Csak mintát mutatunk
-    
-    if html_files:
-        st.subheader("📄 HTML jelentések:")
-        for file in html_files[:5]:
-            st.markdown(f"📄 [{file}](./{file})")
-
-# Elemzés indítása
-st.header("🚀 Enhanced Elemzés indítása")
-
-# Elemzés konfigurációjának megjelenítése
-if url_list:
-    config_col1, config_col2, config_col3 = st.columns(3)
-    
-    with config_col1:
-        st.metric("URL-ek száma", len(url_list))
-        st.metric("Párhuzamos szálak", max_workers if parallel_processing else 1)
-    
-    with config_col2:
-        st.metric("AI Enhancement", "✅" if use_ai_evaluation else "❌")
-        st.metric("Cache", "✅" if use_cache else "❌")
-    
-    with config_col3:
-        st.metric("PageSpeed", "❌" if skip_pagespeed else "✅")
-        st.metric("Force Refresh", "✅" if force_refresh else "❌")
-
-if st.button("▶️ Enhanced Elemzés kezdése", type="primary", disabled=not bool(url_list)):
-    if not url_list:
-        st.error("❌ Nem adtál meg URL-eket!")
-    else:
-        # Progress bar és status
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
-        try:
-            # Időmérés kezdése
-            start_time = time.time()
-            
-            status_text.text("🚀 Enhanced elemzés inicializálása...")
-            progress_bar.progress(10)
-            
-            # Fájlnév generálás timestamp-pel
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            json_filename = f"geo_enhanced_analysis_{timestamp}.json"
-            html_filename = f"geo_enhanced_report_{timestamp}.html"
-            
-            status_text.text("🤖 Enhanced URL-ek elemzése folyamatban...")
-            progress_bar.progress(20)
-            
-            # Enhanced elemzés futtatása
-            analyze_urls_enhanced(
-                url_list=url_list,
-                api_key=api_key if not skip_pagespeed else None,
-                output_file=json_filename,
-                parallel=parallel_processing,
-                skip_pagespeed=skip_pagespeed,
-                max_workers=max_workers if parallel_processing else 1,
-                use_cache=use_cache,
-                use_ai=use_ai_evaluation,
-                force_refresh=force_refresh
-            )
-            
-            progress_bar.progress(70)
-            status_text.text("📋 Enhanced HTML jelentés generálása...")
-            
-            # HTML jelentés
-            generate_html_report(json_filename, html_filename)
-            
-            progress_bar.progress(90)
-            status_text.text("📊 CSV export...")
-            
-            # CSV export
-            csv_filename = f"geo_enhanced_export_{timestamp}.csv"
-            generate_csv_export(json_filename, csv_filename)
-            
-            progress_bar.progress(100)
-            
-            # Sikeres befejezés
-            elapsed_time = time.time() - start_time
-            status_text.text(f"✅ Enhanced elemzés befejezve! ({elapsed_time:.1f} másodperc)")
-            
-            # Download gombok
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                with open(json_filename, 'rb') as f:
-                    st.download_button(
-                        "🤖 Enhanced JSON",
-                        f,
-                        file_name=json_filename,
-                        mime="application/json"
-                    )
-            
-            with col2:
-                with open(html_filename, 'rb') as f:
-                    st.download_button(
-                        "📄 Enhanced HTML",
-                        f,
-                        file_name=html_filename,
-                        mime="text/html"
-                    )
-            
-            with col3:
-                with open(csv_filename, 'rb') as f:
-                    st.download_button(
-                        "📈 Enhanced CSV",
-                        f,
-                        file_name=csv_filename,
-                        mime="text/csv"
-                    )
-            
-            # Enhanced összefoglaló megjelenítése
-            with open(json_filename, 'r', encoding='utf-8') as f:
-                results = json.load(f)
-            
-            st.header("📈 Enhanced Összefoglaló")
-            
-            col1, col2, col3, col4, col5 = st.columns(5)
-            
-            valid_results = [r for r in results if 'ai_readiness_score' in r and 'error' not in r]
-            ai_enhanced_results = [r for r in valid_results if r.get('ai_content_evaluation')]
-            schema_enhanced_results = [r for r in valid_results if r.get('schema', {}).get('validation_status') == 'enhanced']
-            
-            with col1:
-                st.metric("Elemzett oldalak", len(results))
-            
-            with col2:
-                if valid_results:
-                    avg_score = sum(r['ai_readiness_score'] for r in valid_results) / len(valid_results)
-                    st.metric("Átlagos AI Score", f"{avg_score:.1f}/100")
-            
-            with col3:
-                st.metric("AI Enhanced", len(ai_enhanced_results))
-            
-            with col4:
-                st.metric("Schema Enhanced", len(schema_enhanced_results))
-            
-            with col5:
-                excellent_count = sum(1 for r in valid_results if r['ai_readiness_score'] >= 70)
-                st.metric("Kiváló oldalak", excellent_count)
-            
-            # Részletes enhanced eredmények
-            if valid_results:
-                st.subheader("🏆 Enhanced Legjobb eredmények")
-                sorted_results = sorted(valid_results, key=lambda x: x['ai_readiness_score'], reverse=True)
-                
-                for i, result in enumerate(sorted_results[:5], 1):
-                    score = result['ai_readiness_score']
-                    url = result['url']
-                    
-                    # Enhanced ikonok
-                    ai_icon = "🤖" if result.get('ai_content_evaluation') else "📊"
-                    schema_icon = "🏗️" if result.get('schema', {}).get('validation_status') == 'enhanced' else "📋"
-                    cache_icon = "💾" if result.get('cached') else "🔄"
-                    
-                    # Szín a score alapján
-                    if score >= 80:
-                        color = "🟢"
-                    elif score >= 60:
-                        color = "🟡"
-                    else:
-                        color = "🔴"
-                    
-                    st.write(f"{color} **{i}.** {ai_icon}{schema_icon}{cache_icon} {url} - **{score}/100**")
-                    
-                    # Enhanced részletek
-                    if result.get('ai_content_evaluation'):
-                        ai_overall = result['ai_content_evaluation'].get('overall_ai_score', 0)
-                        st.caption(f"   AI Overall Score: {ai_overall:.1f}/100")
-                    
-                    if result.get('schema', {}).get('validation_status') == 'enhanced':
-                        schema_score = result['schema'].get('schema_completeness_score', 0)
-                        st.caption(f"   Schema Completeness: {schema_score:.1f}/100")
-            
-            # Cache statisztikák megjelenítése
-            if use_cache:
-                st.subheader("💾 Cache Teljesítmény")
-                try:
-                    analyzer = GEOAnalyzer(use_cache=True)
-                    cache_stats = analyzer.get_cache_stats()
-                    
-                    cache_col1, cache_col2, cache_col3 = st.columns(3)
-                    with cache_col1:
-                        st.metric("Cache fájlok", cache_stats.get('total_files', 0))
-                    with cache_col2:
-                        st.metric("Érvényes cache", cache_stats.get('valid_files', 0))
-                    with cache_col3:
-                        st.metric("Cache méret", f"{cache_stats.get('total_size_mb', 0)} MB")
-                        
-                except Exception as e:
-                    st.warning(f"Cache statisztikák nem elérhetők: {e}")
-            
-        except Exception as e:
-            st.error(f"❌ Hiba történt az enhanced elemzés során: {str(e)}")
-            status_text.text("❌ Enhanced elemzés megszakítva")
-            import traceback
-            st.code(traceback.format_exc())
-
-# Információs szekció
-with st.expander("ℹ️ Enhanced GEO Analyzer információk"):
+    st.header("📊 Elemzés indítása")
     st.markdown("""
-    ### 🚀 Újdonságok az Enhanced verzióban:
-    
-    **🤖 AI-alapú tartalom értékelés:**
-    - Valódi AI-alapú tartalom minőség értékelés
-    - Platform-specifikus AI optimalizálás
-    - Szemantikai releváncia mérés
-    - Faktualitás ellenőrzés
-    
-    **💾 Intelligens Cache rendszer:**
-    - Automatikus eredmény cache-elés
-    - Gyorsabb újrafuttatás
-    - Intelligent invalidation
-    - Cache statisztikák és tisztítás
-    
-    **🏗️ Enhanced Schema validáció:**
-    - Google Rich Results Test szimuláció
-    - Schema effectiveness mérés
-    - Dinamikus schema ajánlások
-    - AI-alapú schema generálás
-    
-    **📊 Platform-specifikus fejlesztések:**
-    - Machine Learning alapú scoring
-    - Hibrid pontszámítás (heurisztikus + AI)
-    - Platform-specifikus A/B testing lehetőség
-    - Enhanced competitive analysis
-    
-    ### Mi az a GEO (Generative Engine Optimization)?
-    
-    A **Generative Engine Optimization** az AI-alapú keresőmotorok (mint ChatGPT, Claude, Gemini) számára való optimalizálás.
-    
-    ### Mit ellenőriz az Enhanced alkalmazás?
-    
-    ✅ **Minden eredeti funkció plus:**
-    - AI-alapú tartalom minőség értékelés
-    - Enhanced schema validáció és effectiveness
-    - Platform-specifikus AI scoring
-    - Intelligent caching és performance optimization
-    
-    ### Hogyan használd az Enhanced verziót?
-    
-    1. **AI Enhancement:** Kapcsold be a fejlett AI értékelést
-    2. **Cache:** Használd a cache-t a gyorsabb elemzésért  
-    3. **URL-ek:** Add meg az elemezni kívánt URL-eket
-    4. **Elemzés:** Indítsd el az enhanced elemzést
-    5. **Eredmények:** Töltsd le a részletes jelentéseket
-    
-    ### Enhanced API kulcsok
-    
-    Az Enhanced verzió jelenleg szimulálja az AI API hívásokat a költséghatékonyság érdekében.
-    Valós implementációban Claude/OpenAI API kulcsok szükségesek.
+     
     """)
+    if st.button("▶️ GEO Elemzés kezdése", type="primary"):
+        if not url_list:
+            st.error("❌ Nem adtál meg URL-eket!")
+        else:
+            # Progress bar és status
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            try:
+                # Időmérés kezdése
+                start_time = time.time()
+                
+                status_text.text("🚀 Enhanced elemzés inicializálása...")
+                progress_bar.progress(10)
+                
+                # Fájlnév generálás timestamp-pel
+                timestamp = time.strftime("%Y%m%d_%H%M%S")
+                json_filename = f"geo_enhanced_analysis_{timestamp}.json"
+                html_filename = f"geo_enhanced_report_{timestamp}.html"
+                
+                status_text.text("🧠 GEO elemzése folyamatban...")
+                progress_bar.progress(20)
+                
+                # Enhanced elemzés futtatása
+                analyze_urls_enhanced(
+                    url_list=url_list,
+                    api_key=api_key if not skip_pagespeed else None,
+                    output_file=json_filename,
+                    parallel=parallel_processing,
+                    skip_pagespeed=skip_pagespeed,
+                    max_workers=max_workers if parallel_processing else 1,
+                    use_cache=use_cache,
+                    use_ai=use_ai_evaluation,
+                    force_refresh=force_refresh
+                )
+                
+                progress_bar.progress(70)
+                status_text.text("📋 HTML jelentés generálása...")
+                
+                # HTML jelentés
+                generate_html_report(json_filename, html_filename)
+                
+                progress_bar.progress(90)
+                status_text.text("📊 CSV export...")
+                
+                # CSV export
+                csv_filename = f"geo_enhanced_export_{timestamp}.csv"
+                generate_csv_export(json_filename, csv_filename)
+                
+                progress_bar.progress(100)
+                
+                # Sikeres befejezés
+                elapsed_time = time.time() - start_time
+                status_text.text(f"✅ GEO elemzés befejezve! ({elapsed_time:.1f} másodperc)")
+                
+                # Download gombok
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    with open(json_filename, 'rb') as f:
+                        st.download_button(
+                            "📄 JSON jelentés letöltése",
+                            f,
+                            file_name=json_filename,
+                            mime="application/json"
+                        )
+                
+                with col2:
+                    with open(html_filename, 'rb') as f:
+                        st.download_button(
+                            "📊 HTML jelentés letöltése",
+                            f,
+                            type="primary",
+                            file_name=html_filename,
+                            mime="text/html"
+                        )
+                
+                with col3:
+                    with open(csv_filename, 'rb') as f:
+                        st.download_button(
+                            "📈 CSV jelentés letöltése",
+                            f,
+                            file_name=csv_filename,
+                            mime="text/csv"
+                        )
+            
+            except Exception as e:
+                st.error(f"❌ Hiba történt az enhanced elemzés során: {str(e)}")
+                status_text.text("❌ Enhanced elemzés megszakítva")
+                import traceback
+                st.code(traceback.format_exc())
+
+col1, col2 = st.columns([1, 1])
+
+with col1:
+# Információs szekció
+    with st.expander("🚀 GEOcheck - Teljes funkcionalitás ℹ️"):
+        st.markdown("""
+                    
+        #### 🎯 GEO (Generative Engine Optimization) Definíció:
+        
+        A **Generative Engine Optimization** az AI-alapú keresőmotorok és chatbotok (ChatGPT, Claude, Gemini, Bing Chat) számára való tartalom optimalizálás. Célja hogy a tartalom megjelenjen AI válaszokban és hivatkozásként szolgáljon.
+        
+        **🚀 Valós AI Integráció (OpenAI GPT-4o-mini):**
+        - **AI Content Evaluation**: Valós OpenAI API-val tartalom minőség értékelés
+        - **AI Readability Score**: Clarity, Engagement, Structure, AI Friendliness metrikák
+        - **AI Factual Check**: Faktualitás, hivatkozások, citations, confidence elemzés
+        - **Platform-specific AI Evaluation**: ChatGPT, Claude, Gemini, Bing Chat optimalizálás
+        - **Semantic Relevance**: Kulcsszavak szemantikai relevancia mérése
+        - **Fallback Heuristics**: Ha API nem elérhető, intelligens fallback algoritmusok
+        
+        **🧠 Machine Learning Motor (Scikit-learn):**
+        - **Random Forest & Gradient Boosting**: Platform kompatibilitás előrejelzés
+        - **Feature Engineering**: 20+ szöveges jellemző automatikus kinyerése
+        - **Hybrid Scoring**: (Hagyományos + ML + AI) súlyozott kombinációja
+        - **Confidence Levels**: ML bizonyossági szintek (High/Medium/Low)
+        - **Feature Importance**: Mely tényezők a legfontosabbak platformonként
+        - **Model Persistence**: Betanított modellek mentése és betöltése
+        
+        **🏗️ Enhanced Schema Validation:**
+        - **Google Rich Results Test**: Valós Google validátor szimuláció
+        - **Schema.org Compliance**: 50+ schema típus teljes validációja
+        - **Rich Results Eligibility**: FAQ, Article, Product, HowTo támogatás
+        - **Schema Effectiveness**: CTR impact és AI understanding mérés
+        - **Dynamic Recommendations**: Automatikus schema javaslatok
+        - **JSON-LD, Microdata, RDFa**: Minden formátum támogatása
+        
+        **💾 Intelligens Cache Rendszer:**
+        - **File-based Caching**: Redis-mentes, egyszerű deployment
+        - **TTL Management**: Automatikus cache lejárat kezelés (1 óra)
+        - **Versioning**: Cache verziókezelés kompatibilitáshoz
+        - **Cache Statistics**: Teljesítmény és találati arány mérés
+        - **Intelligent Invalidation**: Automatikus cache törlés lejáratkor
+        - **Force Refresh**: Manual cache bypass lehetőség
+        
+        **📊 Fejlett Tartalom Elemzés:**
+        - **Content Quality Analyzer**: Olvashatóság, kulcsszó sűrűség, szemantikai gazdagság
+        - **AI-Specific Metrics**: 8 AI-readiness metrika (structure, qa_format, entities, stb.)
+        - **Authority Signals**: Szerző info, publikálási dátum, szakmai terminológia
+        - **Semantic Richness**: Entitások, domain expertise, kapcsolatok
+        - **Readability Scores**: Flesch score, mondathossz, szókincs gazdagság
+        
+        **🎯 Multi-Platform Optimization:**
+        - **ChatGPT Optimizer**: Lépésenkénti útmutatók, listák, gyakorlati tartalom
+        - **Claude Optimizer**: Részletes kontextus, hivatkozások, árnyalt magyarázatok  
+        - **Gemini Optimizer**: Friss információk, multimédia, strukturált adatok
+        - **Bing Chat Optimizer**: Források, külső hivatkozások, időszerű tartalom
+        - **Platform Scoring**: Hagyományos + ML + AI triple hybrid rendszer
+        
+        **🔧 Auto-Fix Generator:**
+        - **Meta Tag Templates**: Title, description, keywords optimalizálás
+        - **Schema Templates**: Organization, Article, FAQ, Product automatikus generálás
+        - **Platform-specific Fixes**: Egyedi javítási javaslatok platformonként
+        - **Priority Scoring**: Javítások fontossági sorrendben
+        - **Code Generation**: Kész HTML/JSON-LD kód generálás
+        
+        **📈 Advanced Reporting:**
+        - **Executive Summary**: C-level döntéshozói összefoglaló
+        - **Technical Audit**: Fejlesztői részletes technikai jelentés
+        - **Competitor Analysis**: Versenytárselemzés és összehasonlítás
+        - **Action Plan**: Konkrét lépésenkénti cselekvési terv
+        - **Progress Tracking**: Fejlődés követése időben
+        - **Multi-format Export**: HTML, JSON, CSV jelentések
+        
+        
+        ### ⚙️ Technikai Architektúra:
+        
+        **Moduláris Felépítés:**
+        - `main.py`: Core analyzer, threading, cache integration
+        - `ai_evaluator.py`: OpenAI API integration, AI scoring
+        - `platform_optimizer.py`: ML models, platform-specific algorithms  
+        - `schema_validator.py`: Schema.org validation, Google Rich Results
+        - `content_analyzer.py`: Text analysis, quality metrics
+        - `cache_manager.py`: File-based caching system
+        - `auto_fixes.py`: Fix generation, code templates
+        - `advanced_reporting.py`: Multi-format report generation
+        - `ai_metrics.py`: AI-readiness specific metrics
+        
+        """)
+with col2:
+    # ML szerepe és működése
+    with st.expander("🧠 Machine Learning a GEO Check alkalmazásban ℹ️"):
+        st.markdown("""
+
+        #### **1. 📊 Platform Kompatibilitás Előrejelzés**
+        Az ML modell **platform-specifikus pontszámokat** jósol meg:
+        - **ChatGPT, Claude, Gemini, Bing Chat** kompatibilitási pontszámok
+        - A hagyományos algoritmus mellett **második vélemény** nyújtása
+        - **Hybrid Score** = (Hagyományos + ML) / 2
+
+        #### **2. 🎯 Miből tanul az ML?**
+        Az ML modell **szöveg jellemzőket** elemez:
+        - **Szöveg hossza** és struktúrája
+        - **Bekezdések száma** és eloszlása
+        - **Listák, táblázatok** megléte
+        - **Címsorok hierarchiája** (H1-H6)
+        - **Kulcsszavak gyakorisága**
+        - **Mondathossz átlagok**
+        - **Szakmai terminológia** sűrűsége
+
+        #### **3. 🔮 Hogyan működik?**
+        1. **Betanítás**: Sok weboldalon **"kézi értékelések"** alapján tanul
+        2. **Feature extraction**: A szövegből **számszerű jellemzőket** von ki
+        3. **Predikció**: Új oldalakra **pontszámot jósol** (0-100)
+        4. **Validáció**: **Confidence level** - mennyire biztos az eredményben
+
+        #### **4. 📈 Pontszám kombináció:**
+        ```
+        Hybrid Score = (Hagyományos algoritmus + ML jóslat) / 2
+        ```
+
+        **Példa**:
+        - Hagyományos ChatGPT score: 40
+        - ML ChatGPT score: 60  
+        - **Hybrid score: 50**
+
+        #### **5. 🎨 ML Confidence (biztonság):**
+        - **High**: <10 pont különbség (ML és hagyományos között)
+        - **Medium**: 10-20 pont különbség
+        - **Low**: >20 pont különbség
+
+        #### **6. 🔍 Feature Importance:**
+        Az ML **megmondja** hogy melyik jellemző **mennyire fontos** az egyes platformoknak:
+        - **ChatGPT**: listák, lépések fontosak
+        - **Claude**: hosszú szöveg, hivatkozások
+        - **Gemini**: frissesség, strukturáltság
+        - **Bing**: források, külső linkek
+
+        #### **7. 🚀 Miért hasznos ez?**
+        - **Objektívebb értékelés**: Nem csak szabály-alapú
+        - **Mintázat felismerés**: Rejtett összefüggéseket talál
+        - **Adaptivitás**: Idővel "tanul" és javul
+        - **Komplexitás kezelés**: Sok tényezőt egyszerre mérlegel
+
+        #### **8. 💡 Gyakorlati haszon:**
+        Az ML **finomítja** a hagyományos algoritmust - ha például egy oldal **szabály szerint** jó pontot kapna, de az **ML alacsony pontot** jósol, akkor valószínűleg **valami rejtett probléma** van amit érdemes megvizsgálni!
+
+        Ez teszi a rendszert **intelligensebbé** és **pontosabbá** a platform optimalizálásban! 🎯
+        """)
 
 # Footer
 st.markdown("---")
-st.markdown("🚀 **Enhanced GEO Analyzer** | AI-Powered Analysis | Készítette: Ecsedi Tamás | 2025")
+st.markdown("🚀 **GEOcheck** | AI & ML támogatott generativ engine optimalizált website ellenőrző rendszer | Fejlesztette: Ecsedi Tamás | 2025")

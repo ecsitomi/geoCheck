@@ -4,20 +4,20 @@ import time
 import os
 from typing import Dict, List, Optional
 from openai import OpenAI
-from dotenv import load_dotenv
+from config import OPENAI_API_KEY
 
-# .env fájl betöltése
-load_dotenv()
+# .env fájl betöltése - most már a config.py kezeli
+# load_dotenv()  # Ezt már nem kell, mert a config.py kezeli
 
 class AIContentEvaluator:
     """AI-alapú tartalom értékelő - OpenAI API használatával"""
     
     def __init__(self):
         # OpenAI kliens inicializálása
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = OPENAI_API_KEY
         if not api_key:
             print("⚠️ FIGYELEM: OPENAI_API_KEY nincs beállítva!")
-            print("Állítsd be a .env fájlban: OPENAI_API_KEY=your_api_key")
+            print("Állítsd be a .env fájlban vagy Streamlit secrets-ben: OPENAI_API_KEY=your_api_key")
             self.client = None
         else:
             self.client = OpenAI(api_key=api_key)

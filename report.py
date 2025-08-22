@@ -34,15 +34,15 @@ HELP_TEXTS = {
     
     # AI Enhanced mutatók
     "ai_content_evaluation": "Valós AI (OpenAI GPT) értékelés a tartalom minőségéről és AI-platformokhoz való alkalmasságról.",
-    "ai_readability": "AI-alapú olvashatóság pontszám amely figyelembe veszi a szemantikai összefüggéseket is.",
-    "ai_factual_check": "AI-alapú faktualitás ellenőrzés - hivatkozások, források, ellenőrizhető állítások megléte.",
-    "platform_compatibility": "Mennyire alkalmas a tartalom különböző AI platformoknak (ChatGPT, Claude, Gemini, Bing Chat).",
+    "ai_readability": "AI-alapú olvashatóság elemzés (OpenAI GPT). Clarity: világosság és érthetőség (0-100). Engagement: bevonó erő és érdekesség (0-100). Structure: logikai felépítés és szervezettség (0-100). AI Friendliness: mennyire könnyen dolgozható fel AI által (0-100).",
+    "ai_factual_check": "AI-alapú faktualitás ellenőrzés (OpenAI GPT). Factual Score: összesített faktualitás pontszám (0-100). Citations: hivatkozások és források száma. Numbers with Units: számszerű adatok mértékegységekkel (megbízhatóság jele). Confidence: AI bizonyossági szint az értékelésben.",
+    "platform_compatibility": "Platform kompatibilitás számítás: Főszám = Hybrid Score (hagyományos algoritmus + ML átlaga). AI Score = Valós AI értékelés (OpenAI GPT). Hybrid Score = (Hagyományos Score + ML Score) / 2. AI Enhanced esetén: Final Score = (40% hagyományos + 40% ML + 20% AI).",
     
     # Platform specifikus
-    "chatgpt_score": "ChatGPT kompatibilitás: lépésenkénti útmutatók, listák, gyakorlati tartalom preferenciája.",
-    "claude_score": "Claude kompatibilitás: részletes kontextus, hivatkozások, árnyalt magyarázatok preferenciája.",
-    "gemini_score": "Google Gemini kompatibilitás: friss információk, multimédia tartalom, strukturált adatok preferenciája.",
-    "bing_chat_score": "Bing Chat kompatibilitás: források, külső hivatkozások, időszerű információk preferenciája.",
+    "chatgpt_score": "ChatGPT kompatibilitás számítás: lépésenkénti útmutatók (+15), listák (+10), gyakorlati példák (+15), Q&A formátum (+20), világos struktúra (+15). Hybrid = (Hagyományos + ML) / 2.",
+    "claude_score": "Claude kompatibilitás számítás: részletes kontextus (+20), hivatkozások (+15), árnyalt magyarázatok (+15), szakmai terminológia (+10), hosszú forma tartalom (+15). Hybrid = (Hagyományos + ML) / 2.",
+    "gemini_score": "Google Gemini kompatibilitás számítás: friss információk (+15), strukturált adatok (+20), multimédia támogatás (+10), schema markup (+15), mobile-friendly (+15). Hybrid = (Hagyományos + ML) / 2.",
+    "bing_chat_score": "Bing Chat kompatibilitás számítás: külső források (+20), hivatkozások (+15), időszerű információk (+15), news tartalom (+10), fact-checking elemek (+15). Hybrid = (Hagyományos + ML) / 2.",
     
     # Teljesítmény
     "pagespeed_mobile": "PageSpeed Insights mobil teljesítmény pontszám (0-100). A gyors betöltés javítja a felhasználói élményt.",
@@ -53,6 +53,32 @@ HELP_TEXTS = {
     "weighted_average": "AI-metrikák súlyozott átlaga. Nem azonos az AI Readiness-szel, de jól jelzi az AI-barát tartalom minőségét.",
     "enhancement_status": "Enhanced vs Standard elemzés státusza. Enhanced verzió valós AI értékelést tartalmaz.",
     "cache_status": "Cache találat információ - ha az eredmény cache-ből származik, gyorsabb de esetleg nem a legfrissebb.",
+    
+    # AI metrikák részletes
+    "ai_summary_score": "Összesített AI-readiness pontszám 0-100 skálán. Az összes AI-specifikus mutató súlyozott átlaga.",
+    "ai_level": "AI-readiness minősítési szint: Fejlesztendő (0-40), Közepes (40-60), Jó (60-80), Kiváló (80-100).",
+    "structure": "Tartalom strukturáltsága: listák, táblázatok, bekezdések, címsorok hierarchiája. Jól strukturált tartalom könnyebben feldolgozható AI számára.",
+    "qa_format": "Kérdés-válasz formátum jelenléte. AI platformok preferálják a Q&A struktúrájú tartalmat, mivel könnyen feldolgozható.",
+    "entities": "Entitások és szemantikai jelölések (schema markup, személyek, helyek, szervezetek). Segítik az AI-t a tartalom megértésében.",
+    "freshness": "Tartalom frissessége: dátum információk, aktuális események, időbélyegek. Friss tartalom magasabb prioritást kap.",
+    "citations": "Hivatkozások és források jelenléte. AI platformok előnyben részesítik a megalapozott, hivatkozásokkal támogatott tartalmat.",
+    "formatting": "AI-barát formázás: jól olvasható struktúra, világos bekezdések, megfelelő sortörések és kiemelések.",
+    "depth": "Tudás mélység: részletesség, példák száma, téma lefedettség. Mélyebb tartalom több értéket nyújt AI felhasználóknak.",
+    "conversational": "Beszélgetés-szerű elemek: kérdések, közvetlenség, interaktív stílus. AI chatbotok számára természetesebb a párbeszédes forma.",
+    
+    # Schema Enhanced metrikák
+    "schema_enhanced": "Fejlett schema elemzés állapota. Enhanced verzió Google validátort és hatékonyság mérést is tartalmaz.",
+    "google_validation": "Google strukturált adatok validátor eredménye. Rich Results: jogosult-e a gazdagított keresési eredményekre (csillagok, képek, árak stb.). Schema Count: hány darab schema markup elem található az oldalon. Valid: megfelelnek-e a Google irányelveknek.",
+    "rich_results": "Rich Results jogosultság: Az oldal schema markup-ja megfelel-e a Google követelményeinek ahhoz, hogy gazdagított keresési eredményként jelenjen meg (csillagos értékelések, képek, árak, FAQ-k stb.).",
+    "schema_count": "Schema elemek száma: Hány darab strukturált adat (JSON-LD, Microdata, RDFa) található az oldalon. Több schema elem jobb lefedettséget biztosít.",
+    "schema_recommendations": "Schema markup fejlesztési javaslatok. Konkrét lépések a strukturált adatok optimalizálásához.",
+    "schema_effectiveness": "Schema markup hatékonysági elemzés. Effectiveness Score: összesített hatékonyság pontszám (0-100). AI Understanding: mennyivel javítja az AI megértést a schema markup (0-100). CTR Impact: becsült kattintási arány javulás százalékban (+X%).",
+    
+    # Tartalom metrikák
+    "keyword_analysis": "Kulcsszó használat elemzése: szókincs gazdagság, kulcsszó sűrűség, releváns kifejezések azonosítása.",
+    "content_depth": "Tartalom mélységi elemzése: téma lefedettség, példák száma, részletezettség, statisztikák és adatok megléte.",
+    "authority_signals": "Tekintélyi jelzők: hivatkozások, forrásanyagok, szakértői tartalom, megbízhatósági mutatók.",
+    "semantic_richness": "Szemantikai gazdagság: entitások, kapcsolatok, témakörök szélessége, kontextuális információk.",
     
     # Hibaüzenetek és státuszok
     "error_status": "Hiba történt az elemzés során. Részletek a hibaüzenetben.",
@@ -864,7 +890,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         if has_ai_eval:
             html_content += '<span class="enhancement-badge badge-ai">🤖 AI Enhanced</span>'
         if has_schema_enhanced:
-            html_content += '<span class="enhancement-badge badge-schema">🏗️ Schema Enhanced</span>'
+            html_content += f'<span class="enhancement-badge badge-schema" title="{html.escape(HELP_TEXTS.get("schema_enhanced", ""))}">🏗️ Schema Enhanced</span>'
         if was_cached:
             html_content += '<span class="enhancement-badge badge-cache">💾 Cached</span>'
             
@@ -883,7 +909,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
         if has_ai_eval:
             html_content += f'\n                <button class="tab" onclick="showTab(event, \'{uid}\', \'ai-enhanced\')">🚀 AI Enhanced</button>'
         if has_schema_enhanced:
-            html_content += f'\n                <button class="tab" onclick="showTab(event, \'{uid}\', \'schema-enhanced\')">🏗️ Schema Enhanced</button>'
+            html_content += f'\n                <button class="tab" onclick="showTab(event, \'{uid}\', \'schema-enhanced\')" title="Fejlett schema elemzés állapota. Enhanced verzió Google validátort és hatékonyság mérést is tartalmaz.">🏗️ Schema Enhanced</button>'
             
         html_content += f"""
                 <button class="tab" onclick="showTab(event, '{uid}', 'content')">📝 Tartalom</button>
@@ -1063,7 +1089,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             if google_validation:
                 html_content += f"""
                     <div class="metric-item ai-enhanced">
-                        <div class="metric-title">🔍 Google Validation</div>
+                        <div class="metric-title">🔍 Google Validation{help_icon("google_validation")}</div>
                         <div class="metric-value">
                             Valid: {"✅" if google_validation.get('is_valid') else "❌"}<br>
                             Overall Score: {fmt(google_validation.get('overall_score', 0), 1)}/100<br>
@@ -1077,7 +1103,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             if recommendations:
                 html_content += f"""
                     <div class="metric-item ai-enhanced">
-                        <div class="metric-title">💡 Schema Ajánlások</div>
+                        <div class="metric-title">💡 Schema Ajánlások{help_icon("schema_recommendations")}</div>
                         <div class="metric-value">
                             Ajánlások száma: {len(recommendations)}<br>"""
                 
@@ -1094,7 +1120,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             if effectiveness and isinstance(effectiveness, dict):
                 html_content += f"""
                     <div class="metric-item ai-enhanced">
-                        <div class="metric-title">📈 Schema Effectiveness</div>
+                        <div class="metric-title">📈 Schema Effectiveness{help_icon("schema_effectiveness")}</div>
                         <div class="metric-value">
                             Effectiveness Score: {fmt(effectiveness.get('effectiveness_score', 0), 1)}/100<br>
                             AI Understanding: {fmt(effectiveness.get('ai_understanding_improvement', 0), 1)}/100<br>
@@ -1117,11 +1143,11 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 <h3>AI Readiness Összefoglaló</h3>
                 <div class="ai-metrics-grid">
                     <div class="ai-metric">
-                        <div class="ai-metric-label">Összesített</div>
+                        <div class="ai-metric-label">Összesített{help_icon("ai_summary_score")}</div>
                         <div class="ai-metric-value">{fmt(score, 0)}</div>
                     </div>
                     <div class="ai-metric">
-                        <div class="ai-metric-label">Szint</div>
+                        <div class="ai-metric-label">Szint{help_icon("ai_level")}</div>
                         <div class="ai-metric-value">{level_from_score(score)}</div>
                     </div>
                     <div class="ai-metric">
@@ -1134,10 +1160,24 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                 <div class="ai-metrics-grid">
 """
             scores = ai_summary.get('individual_scores', {})
+            
+            # AI metrikák megjelenítése tooltip-ekkel
+            ai_metric_labels = {
+                "structure": "Structure",
+                "qa_format": "Q&A Format", 
+                "entities": "Entities",
+                "freshness": "Freshness",
+                "citations": "Citations",
+                "formatting": "Formatting",
+                "depth": "Depth",
+                "conversational": "Conversational"
+            }
+            
             for key, value in scores.items():
+                display_label = ai_metric_labels.get(key, key.replace('_', ' ').title())
                 html_content += f"""
                     <div class="ai-metric">
-                        <div class="ai-metric-label">{key.replace('_', ' ').title()}</div>
+                        <div class="ai-metric-label">{display_label}{help_icon(key)}</div>
                         <div class="ai-metric-value">{value}</div>
                     </div>
 """
@@ -1176,7 +1216,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     </div>
                     
                     <div class="metric-item">
-                        <div class="metric-title">🔍 Kulcsszó elemzés</div>
+                        <div class="metric-title">🔍 Kulcsszó elemzés{help_icon("keyword_analysis")}</div>
                         <div class="metric-value">
                             Össz szó: {keyword_analysis.get('total_words', 0)}<br>
                             Egyedi szavak: {keyword_analysis.get('unique_words', 0)}<br>
@@ -1195,7 +1235,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     </div>
                     
                     <div class="metric-item">
-                        <div class="metric-title">📊 Tartalom mélység</div>
+                        <div class="metric-title">📊 Tartalom mélység{help_icon("content_depth")}</div>
                         <div class="metric-value">
                             Kategória: {content_depth.get('content_length_category', 'N/A')}<br>
                             Témakör lefedettség: {content_depth.get('topic_coverage', 0)}<br>
@@ -1207,7 +1247,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     </div>
                     
                     <div class="metric-item">
-                        <div class="metric-title">🎖️ Tekintély jelzők</div>
+                        <div class="metric-title">🎖️ Tekintély jelzők{help_icon("authority_signals")}</div>
                         <div class="metric-value">
                             Szerző info: {"✅" if authority_signals.get('has_author_info') else "❌"}<br>
                             Publikálási dátum: {"✅" if authority_signals.get('has_publication_dates') else "❌"}<br>
@@ -1218,7 +1258,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
                     </div>
                     
                     <div class="metric-item">
-                        <div class="metric-title">🧠 Szemantikai gazdagság</div>
+                        <div class="metric-title">🧠 Szemantikai gazdagság{help_icon("semantic_richness")}</div>
                         <div class="metric-value">
                             Entitások:<br>
                             • Személyek: {semantic_richness.get('entities', {}).get('persons', 0)}<br>

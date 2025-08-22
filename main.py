@@ -18,10 +18,11 @@ from advanced_reporting import AdvancedReportGenerator
 from cache_manager import CacheManager
 from ai_evaluator import AIContentEvaluator
 from schema_validator import SchemaValidator
+from config import GOOGLE_API_KEY
 
-# .env fájl betöltése
-load_dotenv()
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+# .env fájl betöltése - most már a config.py kezeli
+# load_dotenv()  # Ezt már nem kell, mert a config.py kezeli
+# GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # Ezt már nem kell
 
 class GEOAnalyzer:
     """Enhanced Generative Engine Optimization elemző osztály"""
@@ -833,7 +834,7 @@ if __name__ == "__main__":
     
     if not api_key:
         print("⚠️ Figyelem: Google API kulcs nincs beállítva!")
-        print("Állítsd be a .env fájlban: GOOGLE_API_KEY=your_api_key")
+        print("Állítsd be a .env fájlban vagy Streamlit secrets-ben: GOOGLE_API_KEY=your_api_key")
         print("PageSpeed Insights nélkül fut az elemzés.\n")
     
     # Enhanced verzió futtatása
