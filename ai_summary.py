@@ -54,10 +54,10 @@ class AISummaryGenerator:
                     },
                     {
                         "role": "user", 
-                        "content": f"""Készítettem egy generative engine optimization ellenőrzést egy url-ről, az eredményt az alábbi json táblázatban küldöm. A feladatod, hogy:
+                        "content": f"""Készítettem egy generative engine optimization ellenőrzést egy url-ről, az eredményt az alábbi json táblázatban küldöm. ELemezd a teljes JSON fájlt, utána az a feladatod, hogy:
 
-1. Készíts egy összefoglalót az eredmények alapján (maximum 500 szó)
-2. Készíts egy javaslatot a GEO eredmények javítására az összefoglaló alapján (maximum 600 szó, konkrét, végrehajtható lépések)
+1. Készíts egy összefoglalót a JSON fájlban tárolt eredmények alapján. Légy alapos és szigorú. Haladj végig a HTML adatokon, AI metrikákon, Olvashatóságon, Schema és Google validáláson, SEO tartalmaok, Platformokon és Sebességen is.  (maximum 1000 szó)
+2. Készíts egy javaslatot a GEO eredmények javítására az 1. pontban írt összefoglaló alapján. Mindenképp használd fel hozzá a JSON fájlban feltüntetett Javítási javaslatokat is. (maximum 1000 szó, konkrét, végrehajtható lépések)
 
 JSON adatok:
 {formatted_data}
@@ -70,7 +70,7 @@ Kérlek, válaszolj JSON formátumban az alábbi struktúrával:
                     }
                 ],
                 temperature=0.7,
-                max_tokens=2500
+                max_tokens=3000  # Csökkentjük a token limitet hogy elférjen a 8192 token kontextusba
             )
             
             # Válasz feldolgozása
@@ -97,44 +97,51 @@ Kérlek, válaszolj JSON formátumban az alábbi struktúrával:
     
     def _format_json_for_ai(self, data: Dict[str, Any]) -> str:
         """
-        Formázza a JSON adatokat AI számára optimalizált formában
+        Formázza a JSON adatokat AI számára - TELJES adathalmaz átadása
         """
         try:
-            # Rövidített verzió készítése (csak a lényeges részek)
-            simplified_data = []
-            
+            # Teljes JSON átadása - ne veszítsünk el adatokat
             if isinstance(data, list):
-                results = data
+                full_data = data
             elif isinstance(data, dict) and 'results' in data:
-                results = data['results']
-            else:
-                results = [data]
-            
-            for item in results:
-                if isinstance(item, dict) and 'error' not in item:
-                    simplified_item = {
-                        "url": item.get("url", "N/A"),
-                        "ai_readiness_score": item.get("ai_readiness_score"),
-                        "meta_data": item.get("meta_data", {}),
-                        "content_quality": item.get("content_quality", {}),
-                        "ai_content_evaluation": item.get("ai_content_evaluation", {}),
-                        "platform_scores": {
-                            "chatgpt_score": item.get("chatgpt_score"),
-                            "claude_score": item.get("claude_score"),
-                            "gemini_score": item.get("gemini_score"),
-                            "bing_chat_score": item.get("bing_chat_score")
-                        },
-                        "schema": item.get("schema", {}),
-                        "pagespeed": item.get("pagespeed", {}),
-                        "fixes": item.get("fixes", {})
+                # Ha van results mező, azt és a meta információkat is küldjük
+                full_data = {
+                    "results": data['results'],
+                    "analysis_metadata": {
+                        "analysis_date": data.get("analysis_date"),
+                        "enhancement_stats": data.get("enhancement_stats", {}),
+                        "total_urls": len(data.get('results', [])) if data.get('results') else 0
                     }
-                    simplified_data.append(simplified_item)
+                }
+            else:
+                full_data = data
             
-            return json.dumps(simplified_data, indent=2, ensure_ascii=False)[:4000]  # Limitáljuk a méretet
+            # Csak a hibás eredményeket szűrjük ki
+            if isinstance(full_data, dict) and 'results' in full_data:
+                full_data['results'] = [
+                    item for item in full_data['results'] 
+                    if isinstance(item, dict) and 'error' not in item
+                ]
+            elif isinstance(full_data, list):
+                full_data = [
+                    item for item in full_data 
+                    if isinstance(item, dict) and 'error' not in item
+                ]
+            
+            # Teljes JSON visszaadása - 8000 karakter limit a token korlátok miatt
+            json_string = json.dumps(full_data, indent=2, ensure_ascii=False)
+            
+            # 8000 karakteres limit a GPT-4 token korlátok miatt
+            if len(json_string) > 8000:
+                logger.warning(f"Nagy JSON méret ({len(json_string)} karakter), limitálás 8000 karakterre")
+                return json_string[:8000] + "\n... [truncated for token limit]"
+            
+            return json_string
             
         except Exception as e:
             logger.error(f"Hiba a JSON formázás során: {str(e)}")
-            return str(data)[:4000]
+            # Fallback: teljes adat string reprezentációja
+            return str(data)[:8000]
     
     def _parse_ai_response_manually(self, response: str) -> Tuple[str, str]:
         """
