@@ -983,7 +983,7 @@ def generate_html_report(json_file: str = "ai_readiness_full_report.json",
             
             if (os.getenv("OPENAI_API_KEY") and 
                 (force_generation or not json_file.startswith('test_'))):
-                from ai_summary import generate_ai_summary_from_file
+                from ai_summaryCOP import generate_ai_summary_from_file
                 summary, recommendations = generate_ai_summary_from_file(json_file)
         except Exception as e:
             # Ha hiba van, marad az alapértelmezett szöveg
