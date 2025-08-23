@@ -153,25 +153,18 @@ OPENAI_API_KEY=sk-your-openai-api-key-here
 ### Funkciók
 
 **📝 AI Összefoglaló**
-- GPT-5 által készített intelligens kiértékelés
-- Maximum 500 szavas összefoglaló az eredményekről
-- Automatikus felismerés az AI-readiness szintről
+- GPT-4 által készített intelligens kiértékelés
+- Maximum 1000 szavas összefoglaló az eredményekről
 
 **💡 AI Javaslatok**
-- Maximum 600 szavas konkrét fejlesztési terv
+- Maximum 1000 szavas konkrét fejlesztési terv
 - Végrehajtható lépések priorizált sorrendben
 - GEO-specifikus optimalizálási tanácsok
-
-**🔄 Interaktív frissítés**
-- Frissítés gomb minden AI összefoglalónál
-- Valós idejű regenerálás lehetősége
-- Placeholder szöveg API kulcs nélkül
 
 ### Használat
 
 1. **Automatikus**: A jelentésben az "🧠 AI Összefoglaló" tab az első
-2. **Manuális**: A "🔄 Frissítés" gombbal újragenerálható
-3. **Programozottan**: `ai_summary.py` modul közvetlen használata
+2. **Programozottan**: `ai_summary.py` modul közvetlen használata
 
 ```python
 from ai_summary import generate_ai_summary_from_file
